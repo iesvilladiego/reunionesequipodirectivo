@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Reuniones Equipo Directivo</title>
+<meta name="theme-color" content="#1e3a5f">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='8' y='6' width='48' height='52' rx='6' fill='%231e3a5f'/%3E%3Crect x='14' y='4' width='36' height='10' rx='3' fill='%23c0392b'/%3E%3Crect x='14' y='22' width='32' height='4' rx='2' fill='%23fff' opacity='.85'/%3E%3Crect x='14' y='32' width='32' height='4' rx='2' fill='%23fff' opacity='.55'/%3E%3Crect x='14' y='42' width='20' height='4' rx='2' fill='%23fff' opacity='.55'/%3E%3Cpath d='M50 34 L60 44 L46 58 L38 58 L38 50 Z' fill='%23f1c40f' stroke='%237d6608' stroke-width='2'/%3E%3C/svg%3E">
+<!-- Manifest PWA embebido como data URI -->
+<link rel="manifest" href='data:application/manifest+json,{"name":"Reuniones Equipo Directivo","short_name":"Reuniones","start_url":"./","scope":"./","display":"standalone","background_color":"%231e3a5f","theme_color":"%231e3a5f","icons":[{"src":"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 512 512%27%3E%3Crect width=%27512%27 height=%27512%27 rx=%2790%27 fill=%27%231e3a5f%27/%3E%3Crect x=%27110%27 y=%2760%27 width=%27290%27 height=%2740%27 rx=%2720%27 fill=%27%23c0392b%27/%3E%3Crect x=%27110%27 y=%27140%27 width=%27260%27 height=%2732%27 rx=%2716%27 fill=%27white%27 opacity=%27.9%27/%3E%3Crect x=%27110%27 y=%27220%27 width=%27260%27 height=%2732%27 rx=%2716%27 fill=%27white%27 opacity=%27.55%27/%3E%3Crect x=%27110%27 y=%27300%27 width=%27170%27 height=%2732%27 rx=%2716%27 fill=%27white%27 opacity=%27.55%27/%3E%3Cpath d=%27M360 300 L440 380 L330 460 L270 460 L270 400 Z%27 fill=%27%23f1c40f%27 stroke=%27%237d6608%27 stroke-width=%2714%27/%3E%3C/svg%3E","sizes":"any","type":"image/svg+xml","purpose":"any"}]}'>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --primario:#1e3a5f; --primario-claro:#2e5a8f; --acento:#c0392b; --ok:#27ae60;
+  --fondo:#f4f6f9; --tarjeta:#fff; --texto:#2c3e50; --gris:#7f8c8d; --borde:#dfe4ea;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--fondo);color:var(--texto);min-height:100vh}
+header{background:var(--primario);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:50;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+header .logo{width:34px;height:34px;flex:none}
+header h1{font-size:1.05rem;font-weight:600;flex:1;min-width:150px}
+#selUsuario{padding:6px 10px;border-radius:6px;border:none;background:#33557f;color:#fff;font-size:.9rem;max-width:220px}
+nav{display:flex;background:var(--primario-claro);overflow-x:auto}
+nav button{flex:1;padding:11px 14px;background:none;border:none;color:#cfe0f3;font-size:.88rem;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent}
+nav button.activo{color:#fff;font-weight:600;border-bottom-color:#f1c40f;background:rgba(255,255,255,.08)}
+main{max-width:1100px;margin:0 auto;padding:16px}
+.tarjeta{background:var(--tarjeta);border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:16px;margin-bottom:16px}
+h2{font-size:1.15rem;color:var(--primario);margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+h3{font-size:.98rem;color:var(--primario);margin:12px 0 8px}
+button.btn{background:var(--primario);color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:.88rem}
+button.btn:hover{background:var(--primario-claro)}
+button.btn.sec{background:#fff;color:var(--primario);border:1px solid var(--primario)}
+button.btn.peligro{background:var(--acento)}
+button.btn.ok{background:var(--ok)}
+button.btn:disabled{opacity:.5;cursor:default}
+input,select,textarea{font-family:inherit;font-size:.9rem;padding:8px;border:1px solid var(--borde);border-radius:6px;background:#fff;color:var(--texto)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--primario-claro)}
+label{font-size:.85rem;font-weight:600;display:block;margin-bottom:4px}
+.fila{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px}
+.fila>div{flex:1;min-width:140px}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th{text-align:left;background:#eef2f7;color:var(--primario);padding:8px;border-bottom:2px solid var(--borde)}
+td{padding:8px;border-bottom:1px solid var(--borde);vertical-align:top}
+tr:hover td{background:#fafbfd}
+.muted{color:var(--gris);font-size:.82rem}
+.etiqueta{display:inline-block;background:#e8eef6;color:var(--primario);border-radius:10px;padding:2px 9px;font-size:.75rem;margin:1px}
+.etiqueta.admin{background:#fdecea;color:var(--acento);font-weight:600}
+.etiqueta.ok{background:#e8f8ef;color:var(--ok);font-weight:600}
+.aviso{background:#fff8e1;border-left:4px solid #f1c40f;padding:10px 12px;border-radius:6px;font-size:.85rem;margin-bottom:12px}
+.error{background:#fdecea;border-left:4px solid var(--acento);padding:10px 12px;border-radius:6px;font-size:.85rem;margin-bottom:12px}
+textarea.editor{width:100%;min-height:420px;font-family:'Segoe UI',sans-serif;font-size:.95rem;line-height:1.55;resize:vertical;white-space:pre-wrap}
+#estadoGuardado{font-size:.78rem;color:var(--gris)}
+.editores span{display:inline-block;width:30px;height:30px;border-radius:50%;background:var(--primario-claro);color:#fff;text-align:center;line-height:30px;font-size:.75rem;font-weight:600;margin-left:-6px;border:2px solid #fff}
+.tareaCompleta td{opacity:.55;text-decoration:line-through}
+.checkGrande{width:19px;height:19px;cursor:pointer;accent-color:var(--ok)}
+.acciones{display:flex;gap:6px;flex-wrap:wrap}
+dialog{border:none;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.3);padding:20px;min-width:320px;max-width:520px;width:92vw}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog h3{margin-top:0}
+@media(max-width:640px){main{padding:10px}.tarjeta{padding:12px}}
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="logo" viewBox="0 0 64 64"><rect x="8" y="6" width="48" height="52" rx="6" fill="#fff" opacity=".15"/><rect x="14" y="4" width="36" height="10" rx="3" fill="#c0392b"/><rect x="14" y="22" width="32" height="4" rx="2" fill="#fff"/><rect x="14" y="32" width="32" height="4" rx="2" fill="#fff" opacity=".6"/><rect x="14" y="42" width="20" height="4" rx="2" fill="#fff" opacity=".6"/><path d="M50 34 L60 44 L46 58 L38 58 L38 50 Z" fill="#f1c40f"/></svg>
+  <h1>Reuniones · Equipo Directivo</h1>
+  <select id="selUsuario" title="Identifícate con tu usuario IdEA"></select>
+</header>
+
+<nav>
+  <button data-tab="reunion" class="activo">📝 Reunión</button>
+  <button data-tab="listado">📋 Listado</button>
+  <button data-tab="usuarios">👥 Usuarios</button>
+  <button data-tab="tareas">✅ Tareas</button>
+  <button data-tab="config">⚙️ Configuración</button>
+</nav>
+
+<main>
+
+<!-- ============ TAB REUNIÓN ============ -->
+<section id="tab-reunion">
+  <div class="tarjeta">
+    <h2>Reunión de equipo directivo
+      <span id="editores" class="editores" title="Conectados ahora"></span>
+    </h2>
+    <div class="fila">
+      <div><label>Fecha</label><input type="date" id="reFecha"></div>
+      <div><label>Título / Orden del día</label><input type="text" id="reTitulo" placeholder="Ej.: Reunión ordinaria de octubre"></div>
+      <div style="flex:0 0 auto"><button class="btn" id="btnNuevaReunion">Nueva reunión</button></div>
+    </div>
+    <div class="fila">
+      <div><label>Reunión activa</label><select id="selReunion"></select></div>
+      <div style="flex:0 0 auto;display:flex;gap:8px">
+        <button class="btn sec" id="btnAsistentes">Asistentes</button>
+        <button class="btn peligro" id="btnBorrarReunion">Eliminar</button>
+      </div>
+    </div>
+    <div class="fila" style="justify-content:space-between">
+      <span id="estadoGuardado"></span>
+      <span class="muted">Edición colaborativa en tiempo real</span>
+    </div>
+    <textarea id="reContenido" class="editor" placeholder="Redacta aquí el acta. Los cambios se sincronizan al instante con todos los dispositivos…"></textarea>
+  </div>
+</section>
+
+<!-- ============ TAB LISTADO ============ -->
+<section id="tab-listado" hidden>
+  <div class="tarjeta">
+    <h2>Listado de reuniones</h2>
+    <div class="fila">
+      <div><label>Buscar asuntos clave</label><input type="search" id="busqueda" placeholder="Palabra o frase a localizar…"></div>
+      <div style="flex:0 0 auto"><button class="btn" id="btnBuscar">Buscar</button></div>
+    </div>
+    <div id="resBusqueda"></div>
+    <table><thead><tr><th>Fecha</th><th>Título</th><th>Última modificación</th><th></th></tr></thead><tbody id="tbodyReuniones"></tbody></table>
+  </div>
+</section>
+
+<!-- ============ TAB USUARIOS ============ -->
+<section id="tab-usuarios" hidden>
+  <div id="zonaAdmin"></div>
+  <div class="tarjeta">
+    <h2>Usuarios participantes</h2>
+    <table><thead><tr><th>IdEA</th><th>Nombre</th><th>Cargo / Rol</th><th>Permisos</th><th></th></tr></thead><tbody id="tbodyUsuarios"></tbody></table>
+  </div>
+</section>
+
+<!-- ============ TAB TAREAS ============ -->
+<section id="tab-tareas" hidden>
+  <div class="tarjeta">
+    <h2>Tareas pendientes</h2>
+    <div id="misTareas"></div>
+    <div class="fila" style="margin-top:14px">
+      <div style="flex:2"><label>Nueva tarea</label><input type="text" id="tarTitulo" placeholder="Descripción de la tarea…"></div>
+      <div><label>Responsable</label><select id="tarResponsable"></select></div>
+      <div><label>Fecha límite</label><input type="date" id="tarLimite"></div>
+      <div style="flex:0 0 auto"><button class="btn" id="btnNuevaTarea">Añadir</button></div>
+    </div>
+    <label style="font-weight:400;margin-top:12px;cursor:pointer">
+      <input type="checkbox" id="chkVerTodas" class="checkGrande" style="vertical-align:-4px"> Mostrar todas las tareas (no solo las pendientes)
+    </label>
+    <table style="margin-top:10px"><thead><tr><th style="width:34px">✔</th><th>Tarea</th><th>Responsable</th><th>Límite</th><th></th></tr></thead><tbody id="tbodyTareas"></tbody></table>
+  </div>
+</section>
+
+<!-- ============ TAB CONFIGURACIÓN ============ -->
+<section id="tab-config" hidden>
+  <div id="zonaAdminConfig"></div>
+
+  <div class="tarjeta">
+    <h2>Días no lectivos</h2>
+    <p class="muted">Importa el archivo <b>DiasNoLectivos.json</b> exportado desde «Gestión de Asuntos Propios». Esto es necesario para el cálculo correcto de las fechas de reunión.</p>
+    <div class="fila" style="margin-top:8px">
+      <div><label>Archivo JSON</label><input type="file" id="fichDias" accept=".json,application/json"></div>
+      <div style="flex:0 0 auto"><button class="btn" id="btnCargarDias">Importar</button></div>
+    </div>
+    <div id="infoDias" class="muted" style="margin-top:8px"></div>
+  </div>
+
+  <div class="tarjeta">
+    <h2>Exportación a PDF</h2>
+    <div class="fila">
+      <div><label>Periodicidad</label>
+        <select id="expPeriodo">
+          <option value="semana">Semana</option>
+          <option value="quincena">Quincena</option>
+          <option value="mes">Mes</option>
+          <option value="trimestre">Trimestre</option>
+          <option value="curso">Curso completo</option>
+        </select>
+      </div>
+      <div id="divExpFecha"><label>Fecha de referencia</label><input type="date" id="expFecha"></div>
+      <div id="divExpTrim" hidden><label>Trimestre</label>
+        <select id="expTrim">
+          <option value="1">1.º (sept–nov)</option><option value="2">2.º (dic–feb)</option>
+          <option value="3">3.º (mar–may)</option><option value="4">4.º (jun)</option>
+        </select>
+      </div>
+      <div style="flex:0 0 auto"><button class="btn" id="btnExportar">Exportar PDF</button></div>
+    </div>
+  </div>
+
+  <div class="tarjeta">
+    <h2>Instalación como PWA</h2>
+    <p class="muted">Para instalar la aplicación en móvil o escritorio, usa «Añadir a pantalla de inicio» / «Instalar» desde el menú del navegador.</p>
+    <p class="muted" style="margin-top:6px">El <b>service worker</b> se registra con ámbito relativo a la carpeta de esta aplicación, de modo que <b>no interfiere</b> con las demás apps alojadas en <code>iesvilladiego.github.io</code>. Si tu despliegue lo necesita, descarga el sw y colócalo junto a este index.html:</p>
+    <button class="btn sec" id="btnDescargarSW" style="margin-top:8px">Descargar sw-reuniones.js</button>
+    <span id="estadoSW" class="muted" style="margin-left:8px"></span>
+  </div>
+
+  <div class="tarjeta">
+    <h2>Curso escolar</h2>
+    <div class="fila">
+      <div><label>Curso (se usa en cabeceras de PDF)</label><input type="text" id="cfgCurso" placeholder="Ej.: 2026/2027"></div>
+      <div style="flex:0 0 auto"><button class="btn" id="btnGuardarCurso">Guardar</button></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ============ PANTALLA DE IDENTIFICACIÓN ============ -->
+<div id="pantallaLogin" style="position:fixed;inset:0;background:linear-gradient(160deg,#1e3a5f,#2e5a8f);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.35);padding:28px;width:100%;max-width:420px">
+    <div style="text-align:center;margin-bottom:14px">
+      <svg width="64" height="64" viewBox="0 0 64 64"><rect x="8" y="6" width="48" height="52" rx="6" fill="#1e3a5f"/><rect x="14" y="4" width="36" height="10" rx="3" fill="#c0392b"/><rect x="14" y="22" width="32" height="4" rx="2" fill="#fff"/><rect x="14" y="32" width="32" height="4" rx="2" fill="#fff" opacity=".6"/><rect x="14" y="42" width="20" height="4" rx="2" fill="#fff" opacity=".6"/><path d="M50 34 L60 44 L46 58 L38 58 L38 50 Z" fill="#f1c40f"/></svg>
+      <h2 style="justify-content:center">Reuniones · Equipo Directivo</h2>
+      <p class="muted">Identifícate con tu usuario para entrar</p>
+    </div>
+
+    <div id="loginError" style="margin-bottom:10px"></div>
+
+    <div id="loginLista" style="display:flex;flex-direction:column;gap:8px"></div>
+
+    <div id="formPrimerAdmin" hidden style="margin-top:14px;border-top:1px solid var(--borde);padding-top:14px">
+      <div class="aviso">Aún no hay usuarios creados. Crea la primera cuenta, que será <b>administradora</b>. Después podrás dar de alta al resto en la pestaña «Usuarios».</div>
+      <label>Usuario IdEA</label>
+      <input type="text" id="laId" style="width:100%" placeholder="p.ej. micelti">
+      <label style="margin-top:8px">Tu nombre</label>
+      <input type="text" id="laNombre" style="width:100%">
+      <label style="margin-top:8px">Cargo</label>
+      <input type="text" id="laCargo" style="width:100%" placeholder="Director/a, Jefe/a de Estudios…">
+      <button class="btn" id="btnPrimerAdmin" style="width:100%;margin-top:14px">Crear cuenta de administrador y entrar</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Diálogo asistentes -->
+<dialog id="dlgAsistentes">
+  <h3>Asistentes de la reunión</h3>
+  <div id="listaAsistentes" style="max-height:300px;overflow:auto;margin:10px 0"></div>
+  <div style="text-align:right"><button class="btn" id="btnCerrarAsistentes">Cerrar</button></div>
+</dialog>
+
+<!-- Diálogo editar tarea -->
+<dialog id="dlgTarea">
+  <h3>Editar tarea</h3>
+  <input type="hidden" id="edId">
+  <label style="margin-top:10px">Descripción</label>
+  <input type="text" id="edTitulo" style="width:100%">
+  <label style="margin-top:10px">Responsable</label>
+  <select id="edResponsable" style="width:100%"></select>
+  <label style="margin-top:10px">Fecha límite</label>
+  <input type="date" id="edLimite" style="width:100%">
+  <div style="text-align:right;margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
+    <button class="btn peligro" id="btnEliminarTarea">Eliminar</button>
+    <button class="btn" id="btnGuardarTarea">Guardar</button>
+  </div>
+</dialog>
+
+<!-- Diálogo resultados de búsqueda -->
+<dialog id="dlgBusqueda">
+  <h3 id="titBusqueda">Resultados</h3>
+  <div id="cuerpoBusqueda" style="max-height:60vh;overflow:auto;margin-top:10px"></div>
+  <div style="text-align:right;margin-top:12px"><button class="btn" onclick="document.getElementById('dlgBusqueda').close()">Cerrar</button></div>
+</dialog>
+
+<script>
+/* ================= FIREBASE ================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyDdA1pI899TaAHJtWGcYoe6gSaV62BHQ_8",
+  authDomain: "reducciones-36ab7.firebaseapp.com",
+  projectId: "reducciones-36ab7",
+  storageBucket: "reducciones-36ab7.firebasestorage.app",
+  messagingSenderId: "590029774303",
+  appId: "1:590029774303:web:190aaf9976de3ca5ec386a",
+  measurementId: "G-CVDNGSC5QW"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+// Autenticación anónima (necesaria si las reglas exigen request.auth != null)
+firebase.auth().signInAnonymously().catch(e => console.warn("Auth anónima:", e.message));
+
+const colUsuarios = db.collection('usuarios');
+const colReuniones = db.collection('reuniones');
+const colTareas = db.collection('tareas');
+const docConfig = db.collection('configuracion');
+
+/* ================= ESTADO ================= */
+let usuarioActual = localStorage.getItem('usuarioActual') || '';
+let usuarios = [];           // [{id, nombre, cargo, admin}]
+let reuniones = [];          // ordenadas por fecha desc
+let reunionActiva = localStorage.getItem('reunionActiva') || '';
+let tareas = [];
+let diasNoLectivos = {};     // fecha -> {categorias, detalle}
+let cursoEscolar = '';
+let escribiendo = false, timerGuardado = null;
+
+const $ = id => document.getElementById(id);
+const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const hoyISO = () => new Date().toISOString().slice(0,10);
+
+/* ================= PESTAÑAS ================= */
+document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('nav button').forEach(x => x.classList.remove('activo'));
+  b.classList.add('activo');
+  ['reunion','listado','usuarios','tareas','config'].forEach(t => $('tab-'+t).hidden = (t !== b.dataset.tab));
+  if (b.dataset.tab === 'tareas') renderTareas();
+}));
+
+/* ================= SESIÓN / USUARIOS ================= */
+colUsuarios.onSnapshot(snap => {
+  usuarios = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b)=> (a.nombre||'').localeCompare(b.nombre||''));
+  renderSelectorUsuario();
+  renderUsuarios();
+  renderSelectorTareas();
+}, err => {
+  console.error('Error leyendo usuarios:', err);
+  mostrarLogin('No se puede conectar con la base de datos: ' + err.message +
+    '. Comprueba que las reglas de Firestore están publicadas y que el acceso anónimo de Authentication está activado.' +
+    (location.protocol === 'file:' ? ' Además, estás abriendo el archivo directamente (file://): sirve la app con un servidor local (p. ej. «python -m http.server») o súbela a GitHub Pages.' : ''));
+});
+
+function soyAdmin(){ const u = usuarios.find(u=>u.id===usuarioActual); return !!u && !!u.admin; }
+
+function renderSelectorUsuario(){
+  const sel = $('selUsuario');
+  sel.innerHTML = '<option value="">— Identifícate —</option>' +
+    usuarios.map(u => `<option value="${esc(u.id)}" ${u.id===usuarioActual?'selected':''}>${esc(u.nombre||u.id)} (${esc(u.id)})</option>`).join('');
+  mostrarLogin();
+}
+
+/* ---- Pantalla de identificación ---- */
+function mostrarLogin(){
+  const pantalla = $('pantallaLogin');
+  if (usuarioActual && usuarios.some(u=>u.id===usuarioActual)){
+    pantalla.style.display = 'none';
+    return;
+  }
+  pantalla.style.display = 'flex';
+  $('loginError').innerHTML = '';
+  if (usuarios.length === 0){
+    $('loginLista').innerHTML = '';
+    $('formPrimerAdmin').hidden = false;
+    return;
+  }
+  $('formPrimerAdmin').hidden = true;
+  $('loginLista').innerHTML = usuarios.map(u => `
+    <button class="btn sec" data-login="${esc(u.id)}" style="text-align:left;display:flex;justify-content:space-between;align-items:center;padding:12px">
+      <span><b>${esc(u.nombre||u.id)}</b> <span class="muted">· ${esc(u.cargo||'')}</span></span>
+      <span class="etiqueta">${esc(u.id)}${u.admin?' ·':''}</span>
+    </button>`).join('');
+  document.querySelectorAll('[data-login]').forEach(b => b.addEventListener('click', () => identificarse(b.dataset.login)));
+}
+
+function identificarse(id){
+  usuarioActual = id;
+  localStorage.setItem('usuarioActual', id);
+  $('selUsuario').value = id;
+  mostrarLogin();
+  renderZonasAdmin(); renderTareas(); renderUsuarios();
+}
+
+$('btnPrimerAdmin').addEventListener('click', async () => {
+  const id = $('laId').value.trim();
+  if(!id) return alert('Escribe tu usuario IdEA');
+  try{
+    await colUsuarios.doc(id).set({
+      nombre: $('laNombre').value.trim() || id,
+      cargo: $('laCargo').value.trim(),
+      admin: true
+    });
+    $('laId').value = $('laNombre').value = $('laCargo').value = '';
+    identificarse(id);
+  }catch(e){ alert('Error al crear la cuenta: '+e.message); }
+});
+
+$('selUsuario').addEventListener('change', e => {
+  identificarse(e.target.value);
+});
+
+function renderZonasAdmin(){
+  $('zonaAdmin').innerHTML = $('zonaAdminConfig').innerHTML = soyAdmin() ? `
+    <div class="tarjeta">
+      <h2>Alta de usuario (solo administrador)</h2>
+      <div class="fila">
+        <div><label>Usuario IdEA</label><input type="text" id="nuId" placeholder="p.ej. micelti"></div>
+        <div><label>Nombre</label><input type="text" id="nuNombre"></div>
+        <div><label>Cargo</label><input type="text" id="nuCargo" placeholder="Director, Jefe de Estudios…"></div>
+        <div style="flex:0 0 auto;display:flex;gap:8px;align-items:center">
+          <label style="margin:0;cursor:pointer"><input type="checkbox" id="nuAdmin"> Administrador</label>
+          <button class="btn" id="btnAltaUsuario">Añadir</button>
+        </div>
+      </div>
+    </div>` : '';
+  if (soyAdmin()){
+    $('btnAltaUsuario').addEventListener('click', async () => {
+      const id = $('nuId').value.trim(); if(!id) return alert('Indica el usuario IdEA');
+      try{
+        await colUsuarios.doc(id).set({nombre:$('nuNombre').value.trim(), cargo:$('nuCargo').value.trim(), admin:$('nuAdmin').checked});
+        $('nuId').value = $('nuNombre').value = $('nuCargo').value = ''; $('nuAdmin').checked = false;
+      }catch(e){ alert('Error al guardar: '+e.message); }
+    });
+    $('btnCargarDias').addEventListener('click', cargarDiasNoLectivos);
+    $('btnGuardarCurso').addEventListener('click', async () => {
+      cursoEscolar = $('cfgCurso').value.trim();
+      await docConfig.doc('general').set({curso: cursoEscolar}, {merge:true});
+      alert('Curso guardado.');
+    });
+  } else {
+    $('zonaAdminConfig').innerHTML = '<div class="aviso">La configuración (días no lectivos, curso, usuarios) solo puede modificarla un usuario administrador.</div>';
+  }
+}
+
+function renderUsuarios(){
+  $('tbodyUsuarios').innerHTML = usuarios.map(u => `
+    <tr>
+      <td><b>${esc(u.id)}</b></td><td>${esc(u.nombre)}</td><td>${esc(u.cargo)}</td>
+      <td>${u.admin?'<span class="etiqueta admin">Admin</span>':'<span class="etiqueta">Participante</span>'}</td>
+      <td>${soyAdmin() && u.id!==usuarioActual ? `<button class="btn peligro" data-borrau="${esc(u.id)}">✕</button>`:''}</td>
+    </tr>`).join('') || '<tr><td colspan="5" class="muted">Sin usuarios. Un administrador debe dar de alta a los participantes.</td></tr>';
+  document.querySelectorAll('[data-borrau]').forEach(b => b.addEventListener('click', async () => {
+    if (confirm('¿Eliminar al usuario '+b.dataset.borrau+'?')) await colUsuarios.doc(b.dataset.borrau).delete();
+  }));
+}
+
+/* ================= DÍAS NO LECTIVOS ================= */
+docConfig.doc('general').onSnapshot(snap => {
+  if (snap.exists){
+    const d = snap.data();
+    diasNoLectivos = d.diasNoLectivos || {};
+    cursoEscolar = d.curso || '';
+    $('cfgCurso').value = cursoEscolar;
+    pintaInfoDias();
+  }
+});
+
+function pintaInfoDias(){
+  const n = Object.keys(diasNoLectivos).length;
+  $('infoDias').textContent = n ? `Importados ${n} días no lectivos para el curso ${cursoEscolar||'(sin curso indicado)'}.` : 'No hay días no lectivos importados todavía.';
+}
+
+function cargarDiasNoLectivos(){
+  const f = $('fichDias').files[0];
+  if(!f) return alert('Selecciona el archivo DiasNoLectivos.json');
+  const lector = new FileReader();
+  lector.onload = async () => {
+    try{
+      const json = JSON.parse(lector.result);
+      const mapa = {};
+      (json.dias||[]).forEach(d => mapa[d.fecha] = {categorias:d.categorias||[], detalle:d.detalle||''});
+      cursoEscolar = json.curso || cursoEscolar;
+      await docConfig.doc('general').set({diasNoLectivos: mapa, curso: cursoEscolar}, {merge:true});
+      alert(`Importados ${Object.keys(mapa).length} días del curso ${cursoEscolar}.`);
+    }catch(e){ alert('Archivo no válido: '+e.message); }
+  };
+  lector.readAsText(f);
+}
+
+function esDiaLectivo(fechaISO){
+  const d = new Date(fechaISO+'T12:00:00');
+  const dia = d.getDay();
+  if (dia === 0 || dia === 6) return false;           // fin de semana
+  const ndl = diasNoLectivos[fechaISO];
+  if (!ndl) return true;
+  const cats = (ndl.categorias||[]).join(' ');
+  return !(/Festivo|Vacacional|No Lectivo|No Disponible|Libre/i.test(cats));
+}
+
+/* ================= REUNIONES (colaborativo) ================= */
+colReuniones.onSnapshot(snap => {
+  reuniones = snap.docs.map(d => ({id:d.id, ...d.data()})).sort((a,b)=> (b.fecha||'').localeCompare(a.fecha||''));
+  renderListaReuniones();
+  renderSelectorReuniones();
+}, err => {
+  $('estadoGuardado').innerHTML = `<span style="color:var(--acento)">Error Firestore: ${esc(err.message)}</span>`;
+});
+
+function renderSelectorReuniones(){
+  const sel = $('selReunion');
+  sel.innerHTML = '<option value="">— Selecciona reunión —</option>' +
+    reuniones.map(r => `<option value="${r.id}" ${r.id===reunionActiva?'selected':''}>${fechaBonita(r.fecha)} · ${esc(r.titulo||'Sin título')}</option>`).join('');
+  $('reFecha').value = reunionActiva ? (reuniones.find(r=>r.id===reunionActiva)?.fecha || hoyISO()) : hoyISO();
+}
+$('selReunion').addEventListener('change', e => {
+  guardarYa();
+  reunionActiva = e.target.value;
+  localStorage.setItem('reunionActiva', reunionActiva);
+  suscribirContenido();
+});
+
+$('btnNuevaReunion').addEventListener('click', async () => {
+  const fecha = $('reFecha').value || hoyISO();
+  const titulo = $('reTitulo').value.trim() || ('Reunión del ' + fechaBonita(fecha));
+  try{
+    const ref = await colReuniones.add({fecha, titulo, contenido:'', creadaPor:usuarioActual, creadaEn:firebase.firestore.FieldValue.serverTimestamp(), actualizadoPor:usuarioActual, actualizadoEn:Date.now()});
+    reunionActiva = ref.id; localStorage.setItem('reunionActiva', reunionActiva);
+    $('reTitulo').value = '';
+    renderSelectorReuniones(); suscribirContenido();
+  }catch(e){ alert('Error: '+e.message); }
+});
+
+$('btnBorrarReunion').addEventListener('click', async () => {
+  if(!reunionActiva) return;
+  if(confirm('¿Eliminar esta reunión y todo su contenido?')){
+    await colReuniones.doc(reunionActiva).delete();
+    reunionActiva = ''; localStorage.removeItem('reunionActiva');
+    renderSelectorReuniones(); suscribirContenido();
+  }
+});
+
+let unsubscribeContenido = null;
+function suscribirContenido(){
+  if (unsubscribeContenido) unsubscribeContenido();
+  $('reContenido').value = ''; $('estadoGuardado').textContent = '';
+  $('editores').innerHTML = '';
+  if(!reunionActiva) return;
+  unsubscribeContenido = colReuniones.doc(reunionActiva).onSnapshot(doc => {
+    if(!doc.exists) return;
+    const d = doc.data();
+    $('reTitulo').value = d.titulo || '';
+    if (!escribiendo || $('reContenido').value === '') $('reContenido').value = d.contenido || '';
+    const au = usuarios.find(u=>u.id===d.actualizadoPor);
+    $('estadoGuardado').textContent = `Última modificación: ${au ? au.nombre : d.actualizadoPor||'—'}${pintaEditores(d.presencia)}`;
+  });
+  // presencia: latido cada 20 s
+  clearInterval(window._latido);
+  window._latido = setInterval(latido, 20000);
+  latido();
+}
+function latido(){
+  if(!reunionActiva || !usuarioActual) return;
+  colReuniones.doc(reunionActiva).set(
+    {presencia: {[usuarioActual]: Date.now()}},
+    {merge:true}
+  ).catch(()=>{});
+}
+function pintaEditores(presencia){
+  const ahora = Date.now();
+  const vivos = Object.entries(presencia||{}).filter(([id,t]) => ahora - t < 65000 && id !== usuarioActual)
+    .map(([id]) => usuarios.find(u=>u.id===id)).filter(Boolean);
+  $('editores').innerHTML = vivos.map(u => `<span title="${esc(u.nombre)}">${esc((u.nombre||'?').slice(0,2).toUpperCase())}</span>`).join('');
+  return '';
+}
+
+// Escritura con debounce: sincroniza ~medio segundo después de dejar de teclear
+$('reContenido').addEventListener('input', () => {
+  if(!reunionActiva){ $('estadoGuardado').textContent = 'Selecciona o crea una reunión primero.'; return; }
+  escribiendo = true;
+  $('estadoGuardado').textContent = 'Guardando…';
+  clearTimeout(timerGuardado);
+  timerGuardado = setTimeout(guardarYa, 500);
+});
+$('reTitulo').addEventListener('change', guardarYa);
+$('reFecha').addEventListener('change', guardarYa);
+function guardarYa(){
+  if(!reunionActiva || !escribiendo) return;
+  clearTimeout(timerGuardado);
+  colReuniones.doc(reunionActiva).set({
+    contenido: $('reContenido').value,
+    titulo: $('reTitulo').value.trim() || 'Sin título',
+    fecha: $('reFecha').value,
+    actualizadoPor: usuarioActual, actualizadoEn: Date.now()
+  }, {merge:true}).then(() => {
+    escribiendo = false;
+    $('estadoGuardado').textContent = 'Guardado ✓ ' + new Date().toLocaleTimeString('es');
+    latido();
+  }).catch(e => $('estadoGuardado').textContent = 'Error al guardar: '+e.message);
+}
+
+/* Asistentes */
+$('btnAsistentes').addEventListener('click', () => {
+  if(!reunionActiva) return alert('Selecciona una reunión');
+  const r = reuniones.find(x=>x.id===reunionActiva) || {};
+  const asis = r.asistentes || [];
+  $('listaAsistentes').innerHTML = usuarios.map(u => `
+    <label style="display:flex;gap:8px;align-items:center;padding:6px 0;cursor:pointer">
+      <input type="checkbox" value="${esc(u.id)}" ${asis.includes(u.id)?'checked':''} class="checkGrande">
+      <b>${esc(u.nombre||u.id)}</b> <span class="muted">${esc(u.cargo)}</span>
+    </label>`).join('');
+  $('dlgAsistentes').showModal();
+});
+$('btnCerrarAsistentes').addEventListener('click', async () => {
+  const asis = [...document.querySelectorAll('#listaAsistentes input:checked')].map(i=>i.value);
+  await colReuniones.doc(reunionActiva).set({asistentes: asis}, {merge:true});
+  $('dlgAsistentes').close();
+});
+
+/* ================= LISTADO + BÚSQUEDA ================= */
+function renderListaReuniones(){
+  $('tbodyReuniones').innerHTML = reuniones.map(r => {
+    const au = usuarios.find(u=>u.id===r.actualizadoPor);
+    return `<tr>
+      <td>${fechaBonita(r.fecha)}</td>
+      <td><a href="#" data-abrir="${r.id}" style="color:var(--primario);font-weight:600">${esc(r.titulo||'Sin título')}</a></td>
+      <td class="muted">${au?esc(au.nombre):esc(r.actualizadoPor||'')} ${r.actualizadoEn?new Date(r.actualizadoEn).toLocaleString('es'):''}</td>
+      <td><button class="btn sec" data-abrir="${r.id}">Abrir</button></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="4" class="muted">Aún no hay reuniones.</td></tr>';
+  document.querySelectorAll('[data-abrir]').forEach(a => a.addEventListener('click', e => {
+    e.preventDefault();
+    reunionActiva = a.dataset.abrir; localStorage.setItem('reunionActiva', reunionActiva);
+    document.querySelector('nav button[data-tab="reunion"]').click();
+    renderSelectorReuniones(); suscribirContenido();
+  }));
+}
+
+function buscarAsuntos(texto){
+  const t = texto.trim().toLowerCase();
+  if(!t) return [];
+  const resultados = [];
+  for (const r of reuniones){
+    const lineas = (r.contenido||'').split('\n');
+    const coincidencias = lineas.filter(l => l.toLowerCase().includes(t));
+    if (coincidencias.length || (r.titulo||'').toLowerCase().includes(t)){
+      resultados.push({reunion:r, coincidencias: coincidencias.slice(0,5)});
+    }
+  }
+  return resultados;
+}
+$('btnBuscar').addEventListener('click', () => {
+  const resultados = buscarAsuntos($('busqueda').value);
+  $('titBusqueda').textContent = `Resultados (${resultados.length} reunión/reuniones)`;
+  $('cuerpoBusqueda').innerHTML = resultados.length ? resultados.map(({reunion:r, coincidencias}) => `
+    <div style="margin-bottom:14px">
+      <b>${fechaBonita(r.fecha)} · ${esc(r.titulo)}</b>
+      ${coincidencias.map(l => `<div style="background:#fff8e1;border-radius:6px;padding:6px 10px;margin:4px 0;font-size:.86rem">${esc(l)}</div>`).join('')}
+    </div>`).join('') : '<p class="muted">Sin coincidencias en el contenido de las reuniones.</p>';
+  $('dlgBusqueda').showModal();
+});
+
+/* ================= TAREAS ================= */
+colTareas.onSnapshot(snap => {
+  tareas = snap.docs.map(d => ({id:d.id, ...d.data()})).sort((a,b)=> (a.completada?1:0)-(b.completada?1:0) || (a.limite||'9999').localeCompare(b.limite||'9999'));
+  renderTareas();
+});
+
+function renderSelectorTareas(){
+  const opts = '<option value="">— Sin asignar —</option>' + usuarios.map(u=>`<option value="${esc(u.id)}">${esc(u.nombre||u.id)}</option>`).join('');
+  $('tarResponsable').innerHTML = opts;
+  $('edResponsable').innerHTML = opts;
+}
+
+function renderTareas(){
+  const soloMias = !$('chkVerTodas').checked;
+  const visibles = tareas.filter(t => !soloMias || (t.responsable === usuarioActual && !t.completada));
+  const miasPend = tareas.filter(t => t.responsable===usuarioActual && !t.completada);
+  $('misTareas').innerHTML = usuarioActual ? `
+    <div class="aviso">Tienes <b>${miasPend.length}</b> tarea(s) pendiente(s) asignada(s) a ti.</div>` :
+    '<div class="aviso">Identifícate arriba para ver tus tareas.</div>';
+
+  $('tbodyTareas').innerHTML = visibles.map(t => {
+    const resp = usuarios.find(u=>u.id===t.responsable);
+    const tarde = t.limite && !t.completada && t.limite < hoyISO();
+    return `<tr class="${t.completada?'tareaCompleta':''}">
+      <td><input type="checkbox" class="checkGrande" data-check="${t.id}" ${t.completada?'checked':''} title="Marcar como completada"></td>
+      <td>${esc(t.titulo)}${t.descripcion?`<div class="muted">${esc(t.descripcion)}</div>`:''}</td>
+      <td>${resp?esc(resp.nombre||resp.id):'—'}</td>
+      <td style="${tarde?'color:var(--acento);font-weight:600':''}">${t.limite?fechaBonita(t.limite):''}${tarde?' ⚠':''}</td>
+      <td class="acciones"><button class="btn sec" data-editar="${t.id}">Editar</button></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5" class="muted">No hay tareas que mostrar con el filtro actual.</td></tr>';
+
+  document.querySelectorAll('[data-check]').forEach(c => c.addEventListener('change', async () => {
+    await colTareas.doc(c.dataset.check).update({
+      completada: c.checked,
+      completadaPor: usuarioActual,
+      completadaEn: c.checked ? Date.now() : null
+    });
+  }));
+  document.querySelectorAll('[data-editar]').forEach(b => b.addEventListener('click', () => abrirEditarTarea(b.dataset.editar)));
+}
+
+$('chkVerTodas').addEventListener('change', renderTareas);
+
+$('btnNuevaTarea').addEventListener('click', async () => {
+  const titulo = $('tarTitulo').value.trim();
+  if(!titulo) return alert('Escribe la descripción de la tarea');
+  if(!usuarioActual) return alert('Identifícate primero');
+  await colTareas.add({titulo, responsable:$('tarResponsable').value, limite:$('tarLimite').value,
+    completada:false, creadaPor:usuarioActual, creadaEn:Date.now()});
+  $('tarTitulo').value = ''; $('tarLimite').value = '';
+});
+
+function abrirEditarTarea(id){
+  const t = tareas.find(x=>x.id===id); if(!t) return;
+  $('edId').value = t.id; $('edTitulo').value = t.titulo;
+  $('edResponsable').value = t.responsable || ''; $('edLimite').value = t.limite || '';
+  $('dlgTarea').showModal();
+}
+$('btnGuardarTarea').addEventListener('click', async () => {
+  await colTareas.doc($('edId').value).update({
+    titulo: $('edTitulo').value.trim(), responsable: $('edResponsable').value, limite: $('edLimite').value
+  });
+  $('dlgTarea').close();
+});
+$('btnEliminarTarea').addEventListener('click', async () => {
+  if(confirm('¿Eliminar esta tarea?')){ await colTareas.doc($('edId').value).delete(); $('dlgTarea').close(); }
+});
+
+/* ================= EXPORTACIÓN PDF ================= */
+$('expPeriodo').addEventListener('change', e => {
+  $('divExpFecha').hidden = e.target.value === 'curso';
+  $('divExpTrim').hidden = e.target.value !== 'trimestre';
+});
+$('expFecha').value = hoyISO();
+
+function rangoPeriodo(){
+  const tipo = $('expPeriodo').value, base = new Date($('expFecha').value + 'T12:00:00');
+  let ini, fin;
+  if (tipo === 'semana'){
+    ini = new Date(base); ini.setDate(base.getDate() - ((base.getDay()+6)%7)); // lunes
+    fin = new Date(ini); fin.setDate(ini.getDate()+6);
+  } else if (tipo === 'quincena'){
+    ini = base.getDate() <= 15 ? new Date(base.getFullYear(), base.getMonth(), 1) : new Date(base.getFullYear(), base.getMonth(), 16);
+    fin = new Date(ini); fin.setDate(ini.getDate()+14);
+  } else if (tipo === 'mes'){
+    ini = new Date(base.getFullYear(), base.getMonth(), 1);
+    fin = new Date(base.getFullYear(), base.getMonth()+1, 0);
+  } else if (tipo === 'trimestre'){
+    // El curso escolar arranca en agosto; el año de inicio se deduce de la fecha de referencia
+    const anyoInicio = base.getMonth() >= 7 ? base.getFullYear() : base.getFullYear() - 1;
+    const tramos = {
+      1: [`${anyoInicio}-08-25`,   `${anyoInicio}-11-30`],
+      2: [`${anyoInicio}-12-01`,   `${anyoInicio+1}-02-28`],
+      3: [`${anyoInicio+1}-03-01`, `${anyoInicio+1}-05-31`],
+      4: [`${anyoInicio+1}-06-01`, `${anyoInicio+1}-06-30`]
+    };
+    [ini, fin] = tramos[$('expTrim').value];
+  } else { // curso
+    const anyoInicio = base.getMonth() >= 7 ? base.getFullYear() : base.getFullYear()-1;
+    ini = new Date(`${anyoInicio}-08-25T12:00:00`);
+    fin = new Date(`${anyoInicio+1}-07-31T12:00:00`);
+  }
+  return [ini.toISOString().slice(0,10), fin.toISOString().slice(0,10)];
+}
+
+$('btnExportar').addEventListener('click', () => {
+  const [ini, fin] = rangoPeriodo();
+  const sel = reuniones.filter(r => r.fecha >= ini && r.fecha <= fin);
+  if (!sel.length) return alert(`No hay reuniones entre ${ini} y ${fin}.`);
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'mm', format:'a4'});
+  const margen = 20, ancho = 210 - margen*2;
+  let y = 0;
+  const cabecera = () => {
+    doc.setFillColor(30,58,95); doc.rect(0,0,210,26,'F');
+    doc.setTextColor(255); doc.setFontSize(14); doc.setFont(undefined,'bold');
+    doc.text('ACTAS DE REUNIONES · EQUIPO DIRECTIVO', margen, 12);
+    doc.setFontSize(9); doc.setFont(undefined,'normal');
+    doc.text(`IES Villa Diego${cursoEscolar ? ' · Curso ' + cursoEscolar : ''}`, margen, 19);
+    doc.text(`Periodo: ${fechaBonita(ini)} a ${fechaBonita(fin)}`, 210-margen, 19, {align:'right'});
+    y = 38; doc.setTextColor(44,62,80);
+  };
+  cabecera();
+  sel.forEach((r, i) => {
+    if (y > 250){ doc.addPage(); cabecera(); }
+    doc.setFontSize(12); doc.setFont(undefined,'bold');
+    const titulo = `${i+1}. ${r.titulo||'Sin título'} — ${fechaBonita(r.fecha)}`;
+    doc.splitTextToSize(titulo, ancho).forEach(l => { if(y>270){doc.addPage();cabecera();} doc.text(l, margen, y); y += 6; });
+    y += 1;
+    doc.setDrawColor(200); doc.line(margen, y, 210-margen, y); y += 6;
+    const asis = (r.asistentes||[]).map(id => (usuarios.find(u=>u.id===id)||{nombre:id}).nombre).filter(Boolean);
+    if (asis.length){
+      doc.setFontSize(9); doc.setFont(undefined,'italic');
+      doc.splitTextToSize('Asisten: ' + asis.join(', '), ancho).forEach(l => { doc.text(l, margen, y); y += 4.5; });
+      y += 2;
+    }
+    doc.setFont(undefined,'normal'); doc.setFontSize(10);
+    doc.splitTextToSize((r.contenido||'(Sin contenido)').replace(/\r/g,''), ancho).forEach(l => {
+      if (y > 275){ doc.addPage(); y = 20; }
+      doc.text(l, margen, y); y += 5;
+    });
+    y += 8;
+  });
+  doc.save(`Reuniones_${ini}_${fin}.pdf`);
+});
+
+/* ================= UTILIDADES ================= */
+function fechaBonita(iso){
+  if(!iso) return '—';
+  const d = new Date(iso + 'T12:00:00');
+  return d.toLocaleDateString('es', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+}
+
+/* ================= PWA: SERVICE WORKER (ámbito relativo) ================= */
+const CODIGO_SW = `/* Service Worker de Reuniones Equipo Directivo.
+   Ámbito: la carpeta de esta app. No interfiere con otras apps del dominio. */
+const CACHE = 'reuniones-v1';
+const ARCHIVOS = ['./', './index.html'];
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ARCHIVOS)).then(() => self.skipWaiting()));
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+});
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  // Nunca cachear Firebase ni llamadas externas: solo archivos propios de esta app
+  if (!e.request.url.startsWith(self.registration.scope)) return;
+  e.respondWith(
+    fetch(e.request).then(resp => {
+      const copia = resp.clone();
+      caches.open(CACHE).then(c => c.put(e.request, copia));
+      return resp;
+    }).catch(() => caches.match(e.request).then(r => r || caches.match('./index.html')))
+  );
+});`;
+
+$('btnDescargarSW').addEventListener('click', () => {
+  const blob = new Blob([CODIGO_SW], {type:'text/javascript'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'sw-reuniones.js'; a.click();
+});
+
+if ('serviceWorker' in navigator && location.protocol === 'https:'){
+  fetch('sw-reuniones.js', {method:'HEAD'}).then(r => {
+    if (r.ok){
+      navigator.serviceWorker.register('sw-reuniones.js', {scope:'./'})
+        .then(() => $('estadoSW').textContent = '✓ Service worker registrado (ámbito: esta carpeta).')
+        .catch(e => $('estadoSW').textContent = 'No se pudo registrar el sw: ' + e.message);
+    } else {
+      $('estadoSW').textContent = 'Coloca sw-reuniones.js junto a index.html para activar el modo offline.';
+    }
+  }).catch(() => {});
+}
+
+/* ================= ARRANQUE ================= */
+renderZonasAdmin();
+mostrarLogin();
+$('expPeriodo').dispatchEvent(new Event('change'));
+</script>
+</body>
+</html>
