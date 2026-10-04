@@ -5,26 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Reuniones Equipo Directivo</title>
 <meta name="theme-color" content="#1e3a5f">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='8' y='6' width='48' height='52' rx='6' fill='%231e3a5f'/%3E%3Crect x='14' y='4' width='36' height='10' rx='3' fill='%23c0392b'/%3E%3Crect x='14' y='22' width='32' height='4' rx='2' fill='%23fff' opacity='.85'/%3E%3Crect x='14' y='32' width='32' height='4' rx='2' fill='%23fff' opacity='.55'/%3E%3Crect x='14' y='42' width='20' height='4' rx='2' fill='%23fff' opacity='.55'/%3E%3Cpath d='M50 34 L60 44 L46 58 L38 58 L38 50 Z' fill='%23f1c40f' stroke='%237d6608' stroke-width='2'/%3E%3C/svg%3E">
-<!-- Manifest PWA embebido como data URI -->
-<link rel="manifest" href='data:application/manifest+json,{"name":"Reuniones Equipo Directivo","short_name":"Reuniones","start_url":"./","scope":"./","display":"standalone","background_color":"%231e3a5f","theme_color":"%231e3a5f","icons":[{"src":"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 512 512%27%3E%3Crect width=%27512%27 height=%27512%27 rx=%2790%27 fill=%27%231e3a5f%27/%3E%3Crect x=%27110%27 y=%2760%27 width=%27290%27 height=%2740%27 rx=%2720%27 fill=%27%23c0392b%27/%3E%3Crect x=%27110%27 y=%27140%27 width=%27260%27 height=%2732%27 rx=%2716%27 fill=%27white%27 opacity=%27.9%27/%3E%3Crect x=%27110%27 y=%27220%27 width=%27260%27 height=%2732%27 rx=%2716%27 fill=%27white%27 opacity=%27.55%27/%3E%3Crect x=%27110%27 y=%27300%27 width=%27170%27 height=%2732%27 rx=%2716%27 fill=%27white%27 opacity=%27.55%27/%3E%3Cpath d=%27M360 300 L440 380 L330 460 L270 460 L270 400 Z%27 fill=%27%23f1c40f%27 stroke=%27%237d6608%27 stroke-width=%2714%27/%3E%3C/svg%3E","sizes":"any","type":"image/svg+xml","purpose":"any"}]}'>
+<link rel="icon" href="img/icon.svg" type="image/svg+xml">
+<link rel="icon" href="img/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="img/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
   --primario:#1e3a5f; --primario-claro:#2e5a8f; --acento:#c0392b; --ok:#27ae60;
   --fondo:#f4f6f9; --tarjeta:#fff; --texto:#2c3e50; --gris:#7f8c8d; --borde:#dfe4ea;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--fondo);color:var(--texto);min-height:100vh}
-header{background:var(--primario);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:50;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--fondo);color:var(--texto);min-height:100vh;-webkit-text-size-adjust:100%}
+header{background:var(--primario);color:#fff;padding:10px 16px;padding-top:max(10px, env(safe-area-inset-top));display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:50;box-shadow:0 2px 6px rgba(0,0,0,.2)}
 header .logo{width:34px;height:34px;flex:none}
 header h1{font-size:1.05rem;font-weight:600;flex:1;min-width:150px}
-#selUsuario{padding:6px 10px;border-radius:6px;border:none;background:#33557f;color:#fff;font-size:.9rem;max-width:220px}
+#sesionActual{font-size:.9rem;background:#33557f;border-radius:6px;padding:6px 10px}
 nav{display:flex;background:var(--primario-claro);overflow-x:auto}
-nav button{flex:1;padding:11px 14px;background:none;border:none;color:#cfe0f3;font-size:.88rem;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent}
+nav button{flex:1;padding:11px 14px;background:none;border:none;color:#cfe0f3;font-size:.88rem;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;text-transform:uppercase;font-weight:600;letter-spacing:.3px}
 nav button.activo{color:#fff;font-weight:600;border-bottom-color:#f1c40f;background:rgba(255,255,255,.08)}
 main{max-width:1100px;margin:0 auto;padding:16px}
 .tarjeta{background:var(--tarjeta);border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:16px;margin-bottom:16px}
@@ -55,12 +58,38 @@ textarea.editor{width:100%;min-height:420px;font-family:'Segoe UI',sans-serif;fo
 #estadoGuardado{font-size:.78rem;color:var(--gris)}
 .editores span{display:inline-block;width:30px;height:30px;border-radius:50%;background:var(--primario-claro);color:#fff;text-align:center;line-height:30px;font-size:.75rem;font-weight:600;margin-left:-6px;border:2px solid #fff}
 .tareaCompleta td{opacity:.55;text-decoration:line-through}
+/* Degradado y parpadeo de tareas por proximidad de la fecha límite */
+@keyframes parpadeo{0%,30%{background:#ff5b4d;color:#fff}40%,100%{background:transparent}}
+.parpadeo1{animation:parpadeo 1s infinite}
+.parpadeo2{animation:parpadeo .5s infinite}
+.parpadeo3{animation:parpadeo .333s infinite}
 .checkGrande{width:19px;height:19px;cursor:pointer;accent-color:var(--ok)}
 .acciones{display:flex;gap:6px;flex-wrap:wrap}
-dialog{border:none;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.3);padding:20px;min-width:320px;max-width:520px;width:92vw}
+dialog{border:none;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.3);padding:20px;min-width:320px;max-width:520px;width:92vw;margin:auto;position:fixed;inset:0}
 dialog::backdrop{background:rgba(0,0,0,.45)}
 dialog h3{margin-top:0}
-@media(max-width:640px){main{padding:10px}.tarjeta{padding:12px}}
+@media(max-width:640px){
+  main{padding:10px}
+  .tarjeta{padding:12px;overflow-x:auto}   /* las tablas deslizan en lugar de romper el diseño */
+  table{min-width:560px}
+  header{padding:8px 10px;gap:8px}
+  header h1{font-size:.95rem}
+  #sesionActual{max-width:100%;flex:1 1 100%;text-align:center}
+  nav button{padding:10px 8px;font-size:.78rem;flex:1 1 auto}
+  textarea.editor{min-height:55vh;font-size:1rem}   /* tamaño de letra legible evita el zoom de iOS */
+  .fila>div{min-width:120px}
+  button.btn{padding:11px 14px;min-height:42px}     /* objetivos táctiles amplios */
+  input,select{font-size:16px}                      /* evita el zoom automático de iOS al enfocar */
+  dialog{padding:16px;width:95vw}
+  .checkGrande{width:22px;height:22px}
+  h2{font-size:1.05rem}
+}
+@media(min-width:641px) and (max-width:900px){
+  main{padding:14px}
+  textarea.editor{min-height:380px}
+}
+/* En pantallas táctiles sin ratón, el efecto hover no debe quedarse pegado */
+@media(hover:none){tr:hover td{background:inherit}}
 </style>
 </head>
 <body>
@@ -68,7 +97,8 @@ dialog h3{margin-top:0}
 <header>
   <svg class="logo" viewBox="0 0 64 64"><rect x="8" y="6" width="48" height="52" rx="6" fill="#fff" opacity=".15"/><rect x="14" y="4" width="36" height="10" rx="3" fill="#c0392b"/><rect x="14" y="22" width="32" height="4" rx="2" fill="#fff"/><rect x="14" y="32" width="32" height="4" rx="2" fill="#fff" opacity=".6"/><rect x="14" y="42" width="20" height="4" rx="2" fill="#fff" opacity=".6"/><path d="M50 34 L60 44 L46 58 L38 58 L38 50 Z" fill="#f1c40f"/></svg>
   <h1>Reuniones · Equipo Directivo</h1>
-  <select id="selUsuario" title="Identifícate con tu usuario IdEA"></select>
+  <span id="sesionActual" style="font-size:.9rem"></span>
+  <button class="btn sec" id="btnSalir" style="padding:6px 12px">Salir</button>
 </header>
 
 <nav>
@@ -96,6 +126,7 @@ dialog h3{margin-top:0}
       <div><label>Reunión activa</label><select id="selReunion"></select></div>
       <div style="flex:0 0 auto;display:flex;gap:8px">
         <button class="btn sec" id="btnAsistentes">Asistentes</button>
+        <button class="btn ok" id="btnTareaDesdeReunion">+ Tarea</button>
         <button class="btn peligro" id="btnBorrarReunion">Eliminar</button>
       </div>
     </div>
@@ -132,17 +163,16 @@ dialog h3{margin-top:0}
 <!-- ============ TAB TAREAS ============ -->
 <section id="tab-tareas" hidden>
   <div class="tarjeta">
-    <h2>Tareas pendientes</h2>
+    <h2>Tareas
+      <span style="display:flex;gap:6px;margin-left:auto;flex-wrap:wrap">
+        <button class="btn" data-filtro="pendientes" id="btnFiltroPend">Pendientes</button>
+        <button class="btn sec" data-filtro="mias" id="btnFiltroMias">Mías</button>
+        <button class="btn sec" data-filtro="finalizadas" id="btnFiltroFin">Finalizadas</button>
+        <button class="btn sec" data-filtro="todas" id="btnFiltroTodas">Todas</button>
+        <button class="btn ok" id="btnTareaDesdeTareas">+ Tarea</button>
+      </span>
+    </h2>
     <div id="misTareas"></div>
-    <div class="fila" style="margin-top:14px">
-      <div style="flex:2"><label>Nueva tarea</label><input type="text" id="tarTitulo" placeholder="Descripción de la tarea…"></div>
-      <div><label>Responsable</label><select id="tarResponsable"></select></div>
-      <div><label>Fecha límite</label><input type="date" id="tarLimite"></div>
-      <div style="flex:0 0 auto"><button class="btn" id="btnNuevaTarea">Añadir</button></div>
-    </div>
-    <label style="font-weight:400;margin-top:12px;cursor:pointer">
-      <input type="checkbox" id="chkVerTodas" class="checkGrande" style="vertical-align:-4px"> Mostrar todas las tareas (no solo las pendientes)
-    </label>
     <table style="margin-top:10px"><thead><tr><th style="width:34px">✔</th><th>Tarea</th><th>Responsable</th><th>Límite</th><th></th></tr></thead><tbody id="tbodyTareas"></tbody></table>
   </div>
 </section>
@@ -187,9 +217,18 @@ dialog h3{margin-top:0}
   <div class="tarjeta">
     <h2>Instalación como PWA</h2>
     <p class="muted">Para instalar la aplicación en móvil o escritorio, usa «Añadir a pantalla de inicio» / «Instalar» desde el menú del navegador.</p>
-    <p class="muted" style="margin-top:6px">El <b>service worker</b> se registra con ámbito relativo a la carpeta de esta aplicación, de modo que <b>no interfiere</b> con las demás apps alojadas en <code>iesvilladiego.github.io</code>. Si tu despliegue lo necesita, descarga el sw y colócalo junto a este index.html:</p>
-    <button class="btn sec" id="btnDescargarSW" style="margin-top:8px">Descargar sw-reuniones.js</button>
-    <span id="estadoSW" class="muted" style="margin-left:8px"></span>
+    <p class="muted" style="margin-top:6px">El <b>service worker</b> (<code>sw-reuniones.js</code>) está desplegado junto a este index.html, registrado con ámbito relativo a la carpeta de esta aplicación, de modo que <b>no interfiere</b> con las demás apps alojadas en <code>iesvilladiego.github.io</code>.</p>
+    <span id="estadoSW" class="muted" style="display:block;margin-top:8px"></span>
+  </div>
+
+  <div class="tarjeta">
+    <h2>Mi cuenta · cambiar contraseña</h2>
+    <div class="fila">
+      <div><label>Contraseña actual</label><input type="password" id="mcActual" autocomplete="current-password"></div>
+      <div><label>Nueva contraseña</label><input type="password" id="mcNueva" autocomplete="new-password"></div>
+      <div><label>Repite la nueva</label><input type="password" id="mcRepite" autocomplete="new-password"></div>
+      <div style="flex:0 0 auto"><button class="btn" id="btnCambiarPass">Cambiar</button></div>
+    </div>
   </div>
 
   <div class="tarjeta">
@@ -203,6 +242,11 @@ dialog h3{margin-top:0}
 
 </main>
 
+<!-- ============ PANTALLA DE INICIO (splash) ============ -->
+<div id="splash" style="position:fixed;inset:0;background:#0d1f33;z-index:300;display:none;align-items:center;justify-content:center;cursor:pointer" title="Clic para pasar directamente al acceso">
+  <img id="splashImg" src="img/ImagenInicio.jpg" alt="Reuniones Equipo Directivo" style="max-width:100%;max-height:100%;object-fit:contain;opacity:0;transition:opacity .9s ease">
+</div>
+
 <!-- ============ PANTALLA DE IDENTIFICACIÓN ============ -->
 <div id="pantallaLogin" style="position:fixed;inset:0;background:linear-gradient(160deg,#1e3a5f,#2e5a8f);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px">
   <div style="background:#fff;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.35);padding:28px;width:100%;max-width:420px">
@@ -214,7 +258,13 @@ dialog h3{margin-top:0}
 
     <div id="loginError" style="margin-bottom:10px"></div>
 
-    <div id="loginLista" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div id="formLogin">
+      <label>Usuario IdEA</label>
+      <input type="text" id="liUsuario" autocomplete="username" style="width:100%">
+      <label style="margin-top:10px">Contraseña</label>
+      <input type="password" id="liPass" autocomplete="current-password" style="width:100%">
+      <button class="btn" id="btnEntrar" style="width:100%;margin-top:16px">Entrar</button>
+    </div>
 
     <div id="formPrimerAdmin" hidden style="margin-top:14px;border-top:1px solid var(--borde);padding-top:14px">
       <div class="aviso">Aún no hay usuarios creados. Crea la primera cuenta, que será <b>administradora</b>. Después podrás dar de alta al resto en la pestaña «Usuarios».</div>
@@ -224,9 +274,10 @@ dialog h3{margin-top:0}
       <input type="text" id="laNombre" style="width:100%">
       <label style="margin-top:8px">Cargo</label>
       <input type="text" id="laCargo" style="width:100%" placeholder="Director/a, Jefe/a de Estudios…">
+      <label style="margin-top:8px">Contraseña (mínimo 6 caracteres)</label>
+      <input type="password" id="laPass" autocomplete="new-password" style="width:100%">
       <button class="btn" id="btnPrimerAdmin" style="width:100%;margin-top:14px">Crear cuenta de administrador y entrar</button>
     </div>
-
   </div>
 </div>
 
@@ -250,6 +301,64 @@ dialog h3{margin-top:0}
   <div style="text-align:right;margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
     <button class="btn peligro" id="btnEliminarTarea">Eliminar</button>
     <button class="btn" id="btnGuardarTarea">Guardar</button>
+  </div>
+</dialog>
+
+<!-- Modal nueva tarea desde reunión -->
+<dialog id="dlgNuevaTarea">
+  <h3>Nueva tarea</h3>
+  <label style="margin-top:10px">Descripción</label>
+  <input type="text" id="ntTitulo" style="width:100%" placeholder="Acuerdo o tarea surgida en la reunión…">
+  <label style="margin-top:10px">Responsable</label>
+  <select id="ntResponsable" style="width:100%"></select>
+  <label style="margin-top:10px">Fecha límite</label>
+  <input type="date" id="ntLimite" style="width:100%">
+  <div style="text-align:right;margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
+    <button class="btn sec" onclick="document.getElementById('dlgNuevaTarea').close()">Cancelar</button>
+    <button class="btn ok" id="btnCrearTarea">Crear tarea</button>
+  </div>
+</dialog>
+
+<!-- Modal edición de usuario -->
+<dialog id="dlgUsuario">
+  <h3>Editar usuario</h3>
+  <input type="hidden" id="euIdViejo">
+  <label style="margin-top:10px">Usuario IdEA</label>
+  <input type="text" id="euId" style="width:100%">
+  <label style="margin-top:10px">Nombre</label>
+  <input type="text" id="euNombre" style="width:100%">
+  <label style="margin-top:10px">Cargo</label>
+  <input type="text" id="euCargo" style="width:100%">
+  <label style="margin-top:12px;cursor:pointer">
+    <input type="checkbox" id="euAdmin" class="checkGrande" style="vertical-align:-4px"> Administrador
+  </label>
+  <label style="margin-top:12px">Nueva contraseña (dejar vacío para no cambiarla)</label>
+  <input type="password" id="euPass" autocomplete="new-password" style="width:100%">
+  <div style="text-align:right;margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
+    <button class="btn sec" onclick="document.getElementById('dlgUsuario').close()">Cancelar</button>
+    <button class="btn" id="btnGuardarUsuario">Guardar</button>
+  </div>
+</dialog>
+
+<!-- Modal importación de Excel -->
+<dialog id="dlgExcel" style="max-width:900px;width:95vw">
+  <h3>Importar usuarios desde Excel</h3>
+  <div class="fila" style="margin-top:8px">
+    <div><label>Columna del <b>IdEA</b></label><select id="mapId"></select></div>
+    <div><label>Columna del <b>Nombre</b></label><select id="mapNombre"></select></div>
+    <div><label>Columna del <b>Cargo</b></label><select id="mapCargo"></select></div>
+    <div><label>Contraseña inicial para todos</label><input type="password" id="passExcel" autocomplete="new-password" placeholder="mín. 6 caracteres"></div>
+    <div style="flex:0 0 auto;display:flex;gap:8px;align-items:center">
+      <label style="margin:0;cursor:pointer"><input type="checkbox" id="chkMarcarTodos" checked class="checkGrande" style="vertical-align:-4px"> Marcar todos</label>
+    </div>
+  </div>
+  <div style="max-height:45vh;overflow:auto;border:1px solid var(--borde);border-radius:8px;margin-top:8px">
+    <table><thead id="theadExcel"></thead><tbody id="tbodyExcel"></tbody></table>
+  </div>
+  <div id="resumenExcel" class="muted" style="margin-top:8px"></div>
+  <div style="text-align:right;margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
+    <button class="btn sec" onclick="document.getElementById('dlgExcel').close()">Cancelar</button>
+    <button class="btn ok" id="btnConfirmarImport">Importar seleccionados</button>
   </div>
 </dialog>
 
@@ -282,8 +391,10 @@ const colTareas = db.collection('tareas');
 const docConfig = db.collection('configuracion');
 
 /* ================= ESTADO ================= */
-let usuarioActual = localStorage.getItem('usuarioActual') || '';
+let usuarioActual = '';                      // siempre hay que identificarse en el modal de acceso
+let ultimoUsuario = localStorage.getItem('usuarioActual') || '';   // solo para preseleccionar
 let usuarios = [];           // [{id, nombre, cargo, admin}]
+let usuariosCargados = false; // evita decidir sobre permisos antes de leer Firestore
 let reuniones = [];          // ordenadas por fecha desc
 let reunionActiva = localStorage.getItem('reunionActiva') || '';
 let tareas = [];
@@ -306,9 +417,15 @@ document.querySelectorAll('nav button').forEach(b => b.addEventListener('click',
 /* ================= SESIÓN / USUARIOS ================= */
 colUsuarios.onSnapshot(snap => {
   usuarios = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b)=> (a.nombre||'').localeCompare(b.nombre||''));
+  usuariosCargados = true;
+  // Si solo queda un usuario, se le concede la administración automáticamente
+  if (usuarios.length === 1 && !usuarios[0].admin){
+    colUsuarios.doc(usuarios[0].id).set({admin:true}, {merge:true}).catch(e=>console.error(e));
+  }
   renderSelectorUsuario();
   renderUsuarios();
   renderSelectorTareas();
+  renderZonasAdmin();   // el alta/importación depende de si el usuario actual es admin
 }, err => {
   console.error('Error leyendo usuarios:', err);
   mostrarLogin('No se puede conectar con la base de datos: ' + err.message +
@@ -318,15 +435,28 @@ colUsuarios.onSnapshot(snap => {
 
 function soyAdmin(){ const u = usuarios.find(u=>u.id===usuarioActual); return !!u && !!u.admin; }
 
+/* ---- Contraseñas: sal aleatoria + SHA-256 (nunca se guarda la contraseña en claro) ---- */
+async function hashContrasena(salt, pass){
+  const datos = new TextEncoder().encode(salt + ':' + pass);
+  const buf = await crypto.subtle.digest('SHA-256', datos);
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
+}
+function nuevaSal(){
+  const a = new Uint8Array(16);
+  crypto.getRandomValues(a);
+  return [...a].map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
 function renderSelectorUsuario(){
-  const sel = $('selUsuario');
-  sel.innerHTML = '<option value="">— Identifícate —</option>' +
-    usuarios.map(u => `<option value="${esc(u.id)}" ${u.id===usuarioActual?'selected':''}>${esc(u.nombre||u.id)} (${esc(u.id)})</option>`).join('');
+  // Cabecera: muestra quién está identificado; sin selector (el cambio exige credenciales)
+  const u = usuarios.find(x=>x.id===usuarioActual);
+  $('sesionActual').innerHTML = u ? `👤 <b>${esc(u.nombre||u.id)}</b>${u.admin?' · Admin':''}` : '';
   mostrarLogin();
 }
 
-/* ---- Pantalla de identificación ---- */
+/* ---- Pantalla de acceso con credenciales ---- */
 function mostrarLogin(){
+  if (window._splashActivo) return;   // espera a que termine la pantalla de inicio
   const pantalla = $('pantallaLogin');
   if (usuarioActual && usuarios.some(u=>u.id===usuarioActual)){
     pantalla.style.display = 'none';
@@ -334,44 +464,69 @@ function mostrarLogin(){
   }
   pantalla.style.display = 'flex';
   $('loginError').innerHTML = '';
-  if (usuarios.length === 0){
-    $('loginLista').innerHTML = '';
-    $('formPrimerAdmin').hidden = false;
+  $('formLogin').style.display = usuarios.length === 0 ? 'none' : 'block';
+  $('formPrimerAdmin').hidden = usuarios.length !== 0;
+  if (usuarios.length !== 0) $('liUsuario').value = ultimoUsuario;   // sugerencia del último acceso
+}
+
+$('btnEntrar').addEventListener('click', async () => {
+  await entrar();
+});
+$('liPass').addEventListener('keydown', e => { if (e.key === 'Enter') entrar(); });
+
+async function entrar(){
+  const id = $('liUsuario').value.trim();
+  const pass = $('liPass').value;
+  $('loginError').innerHTML = '';
+  if(!id || !pass) return;
+  const u = usuarios.find(x=>x.id===id);
+  if (!u || !u.passHash || !u.passSalt){
+    $('loginError').innerHTML = '<div class="error">Usuario o contraseña incorrectos.</div>';
+    $('liPass').value = '';
     return;
   }
-  $('formPrimerAdmin').hidden = true;
-  $('loginLista').innerHTML = usuarios.map(u => `
-    <button class="btn sec" data-login="${esc(u.id)}" style="text-align:left;display:flex;justify-content:space-between;align-items:center;padding:12px">
-      <span><b>${esc(u.nombre||u.id)}</b> <span class="muted">· ${esc(u.cargo||'')}</span></span>
-      <span class="etiqueta">${esc(u.id)}${u.admin?' ·':''}</span>
-    </button>`).join('');
-  document.querySelectorAll('[data-login]').forEach(b => b.addEventListener('click', () => identificarse(b.dataset.login)));
+  const hash = await hashContrasena(u.passSalt, pass);
+  if (hash !== u.passHash){
+    $('loginError').innerHTML = '<div class="error">Usuario o contraseña incorrectos.</div>';
+    $('liPass').value = '';
+    return;
+  }
+  $('liPass').value = '';
+  identificarse(id);
 }
 
 function identificarse(id){
   usuarioActual = id;
+  ultimoUsuario = id;
   localStorage.setItem('usuarioActual', id);
-  $('selUsuario').value = id;
   mostrarLogin();
   renderZonasAdmin(); renderTareas(); renderUsuarios();
 }
 
+/* ---- Salir: vuelve siempre al modal de acceso ---- */
+$('btnSalir').addEventListener('click', () => {
+  usuarioActual = '';
+  mostrarLogin();
+  renderZonasAdmin(); renderTareas(); renderUsuarios();
+});
+
 $('btnPrimerAdmin').addEventListener('click', async () => {
   const id = $('laId').value.trim();
+  const pass = $('laPass').value || id;   // por defecto, la contraseña inicial es el propio IdEA
   if(!id) return alert('Escribe tu usuario IdEA');
+  if (pass.length < 6) return alert('La contraseña inicial debe tener al menos 6 caracteres (el IdEA es demasiado corto: escribe una contraseña).');
   try{
+    const salt = nuevaSal();
     await colUsuarios.doc(id).set({
       nombre: $('laNombre').value.trim() || id,
       cargo: $('laCargo').value.trim(),
-      admin: true
+      admin: true,
+      passSalt: salt,
+      passHash: await hashContrasena(salt, pass)
     });
-    $('laId').value = $('laNombre').value = $('laCargo').value = '';
+    $('laId').value = $('laNombre').value = $('laCargo').value = $('laPass').value = '';
     identificarse(id);
   }catch(e){ alert('Error al crear la cuenta: '+e.message); }
-});
-
-$('selUsuario').addEventListener('change', e => {
-  identificarse(e.target.value);
 });
 
 function renderZonasAdmin(){
@@ -382,18 +537,31 @@ function renderZonasAdmin(){
         <div><label>Usuario IdEA</label><input type="text" id="nuId" placeholder="p.ej. micelti"></div>
         <div><label>Nombre</label><input type="text" id="nuNombre"></div>
         <div><label>Cargo</label><input type="text" id="nuCargo" placeholder="Director, Jefe de Estudios…"></div>
+        <div><label>Contraseña inicial</label><input type="password" id="nuPass" autocomplete="new-password" placeholder="mín. 6 caracteres"></div>
         <div style="flex:0 0 auto;display:flex;gap:8px;align-items:center">
           <label style="margin:0;cursor:pointer"><input type="checkbox" id="nuAdmin"> Administrador</label>
           <button class="btn" id="btnAltaUsuario">Añadir</button>
         </div>
       </div>
+      <p class="muted">El usuario deberá cambiarla después pidiéndosela al administrador. Comunícasela por un medio seguro.</p>
+      <hr style="border:none;border-top:1px solid var(--borde);margin:14px 0">
+      <h3>Importar desde Excel (RelPerCen)</h3>
+      <div class="fila">
+        <div><label>Archivo .xls / .xlsx</label><input type="file" id="fichExcel" accept=".xls,.xlsx,.csv"></div>
+        <div style="flex:0 0 auto"><button class="btn sec" id="btnImportarExcel">Analizar archivo</button></div>
+      </div>
+      <p class="muted">Se abrirá un modal con las filas del archivo: marca las que quieras importar, indica qué columna corresponde al IdEA, al nombre y al cargo, y confirma.</p>
     </div>` : '';
   if (soyAdmin()){
     $('btnAltaUsuario').addEventListener('click', async () => {
       const id = $('nuId').value.trim(); if(!id) return alert('Indica el usuario IdEA');
+      const pass = $('nuPass').value || id;   // por defecto, la contraseña inicial es el propio IdEA
+      if (pass.length < 6) return alert('La contraseña inicial debe tener al menos 6 caracteres (el IdEA es demasiado corto: escribe una contraseña).');
       try{
-        await colUsuarios.doc(id).set({nombre:$('nuNombre').value.trim(), cargo:$('nuCargo').value.trim(), admin:$('nuAdmin').checked});
-        $('nuId').value = $('nuNombre').value = $('nuCargo').value = ''; $('nuAdmin').checked = false;
+        const salt = nuevaSal();
+        await colUsuarios.doc(id).set({nombre:$('nuNombre').value.trim(), cargo:$('nuCargo').value.trim(), admin:$('nuAdmin').checked,
+          passSalt: salt, passHash: await hashContrasena(salt, pass)});
+        $('nuId').value = $('nuNombre').value = $('nuCargo').value = $('nuPass').value = ''; $('nuAdmin').checked = false;
       }catch(e){ alert('Error al guardar: '+e.message); }
     });
     $('btnCargarDias').addEventListener('click', cargarDiasNoLectivos);
@@ -402,8 +570,21 @@ function renderZonasAdmin(){
       await docConfig.doc('general').set({curso: cursoEscolar}, {merge:true});
       alert('Curso guardado.');
     });
+    $('btnImportarExcel').addEventListener('click', analizarExcel);
   } else {
-    $('zonaAdminConfig').innerHTML = '<div class="aviso">La configuración (días no lectivos, curso, usuarios) solo puede modificarla un usuario administrador.</div>';
+    const hayAdmin = usuarios.some(u => u.admin);
+    const aviso = hayAdmin || !usuariosCargados
+      ? '<div class="aviso">La gestión de usuarios (alta manual e importación desde Excel) y la configuración solo están disponibles para usuarios <b>administradores</b>. Identifícate con un usuario admin en el desplegable de la cabecera.</div>'
+      : `<div class="aviso">Actualmente <b>ningún usuario tiene permisos de administrador</b>, por lo que la gestión está bloqueada. Si eres quien administra la aplicación, puedes recuperar el control:</div>
+         <button class="btn peligro" id="btnRecuperarAdmin">Concederme administración a mí (${esc(usuarioActual || 'sin usuario identificado')})</button>`;
+    $('zonaAdmin').innerHTML = aviso;
+    $('zonaAdminConfig').innerHTML = aviso;
+    const btn = $('btnRecuperarAdmin');
+    if (btn) btn.addEventListener('click', async () => {
+      if(!usuarioActual) return alert('Identifícate primero en el desplegable de la cabecera.');
+      if(!confirm(`¿Confirmas conceder permisos de administrador a "${usuarioActual}"?`)) return;
+      await colUsuarios.doc(usuarioActual).set({admin:true}, {merge:true});
+    });
   }
 }
 
@@ -412,12 +593,73 @@ function renderUsuarios(){
     <tr>
       <td><b>${esc(u.id)}</b></td><td>${esc(u.nombre)}</td><td>${esc(u.cargo)}</td>
       <td>${u.admin?'<span class="etiqueta admin">Admin</span>':'<span class="etiqueta">Participante</span>'}</td>
-      <td>${soyAdmin() && u.id!==usuarioActual ? `<button class="btn peligro" data-borrau="${esc(u.id)}">✕</button>`:''}</td>
+      <td class="acciones">
+        ${soyAdmin() ? `<button class="btn sec" data-editaru="${esc(u.id)}">Editar</button>`:''}
+        ${soyAdmin() && u.id!==usuarioActual ? `<button class="btn peligro" data-borrau="${esc(u.id)}">✕</button>`:''}
+      </td>
     </tr>`).join('') || '<tr><td colspan="5" class="muted">Sin usuarios. Un administrador debe dar de alta a los participantes.</td></tr>';
+  document.querySelectorAll('[data-editaru]').forEach(b => b.addEventListener('click', () => abrirEditarUsuario(b.dataset.editaru)));
   document.querySelectorAll('[data-borrau]').forEach(b => b.addEventListener('click', async () => {
     if (confirm('¿Eliminar al usuario '+b.dataset.borrau+'?')) await colUsuarios.doc(b.dataset.borrau).delete();
   }));
 }
+
+/* ---- Edición de usuario en modal ---- */
+function abrirEditarUsuario(id){
+  const u = usuarios.find(x=>x.id===id); if(!u) return;
+  $('euIdViejo').value = u.id;
+  $('euId').value = u.id;
+  $('euNombre').value = u.nombre || '';
+  $('euCargo').value = u.cargo || '';
+  $('euAdmin').checked = !!u.admin;
+  $('dlgUsuario').showModal();
+}
+$('btnGuardarUsuario').addEventListener('click', async () => {
+  const idViejo = $('euIdViejo').value;
+  const idNuevo = $('euId').value.trim();
+  if(!idNuevo) return alert('El usuario IdEA no puede quedar vacío');
+  const nuevaPass = $('euPass').value;
+  if (nuevaPass && nuevaPass.length < 6) return alert('La contraseña debe tener al menos 6 caracteres');
+  const datos = {
+    nombre: $('euNombre').value.trim(),
+    cargo: $('euCargo').value.trim(),
+    admin: $('euAdmin').checked
+  };
+  if (nuevaPass){
+    datos.passSalt = nuevaSal();
+    datos.passHash = await hashContrasena(datos.passSalt, nuevaPass);
+  }
+  try{
+    if (idNuevo === idViejo){
+      await colUsuarios.doc(idViejo).update(datos);
+    } else {
+      // Cambio de IdEA: nuevo documento y borrado del antiguo
+      await colUsuarios.doc(idNuevo).set(datos);
+      await colUsuarios.doc(idViejo).delete();
+      if (usuarioActual === idViejo){ usuarioActual = idNuevo; localStorage.setItem('usuarioActual', idNuevo); }
+    }
+    $('euPass').value = '';
+    $('dlgUsuario').close();
+  }catch(e){ alert('Error al guardar: '+e.message); }
+});
+
+/* ---- Cambio de contraseña propia (verificando la actual) ---- */
+$('btnCambiarPass').addEventListener('click', async () => {
+  if (!usuarioActual) return alert('Identifícate primero.');
+  const u = usuarios.find(x=>x.id===usuarioActual);
+  if (!u) return alert('No se ha encontrado tu perfil.');
+  const actual = $('mcActual').value, nueva = $('mcNueva').value, repite = $('mcRepite').value;
+  if (!u.passHash || !u.passSalt) return alert('Tu perfil no tiene contraseña asignada. Pide a un administrador que te la fije.');
+  if (await hashContrasena(u.passSalt, actual) !== u.passHash) return alert('La contraseña actual no es correcta.');
+  if (nueva.length < 6) return alert('La nueva contraseña debe tener al menos 6 caracteres.');
+  if (nueva !== repite) return alert('Las dos contraseñas nuevas no coinciden.');
+  try{
+    const salt = nuevaSal();
+    await colUsuarios.doc(usuarioActual).update({passSalt: salt, passHash: await hashContrasena(salt, nueva)});
+    $('mcActual').value = $('mcNueva').value = $('mcRepite').value = '';
+    alert('Contraseña actualizada correctamente.');
+  }catch(e){ alert('Error al cambiar la contraseña: '+e.message); }
+});
 
 /* ================= DÍAS NO LECTIVOS ================= */
 docConfig.doc('general').onSnapshot(snap => {
@@ -581,6 +823,34 @@ $('btnCerrarAsistentes').addEventListener('click', async () => {
   $('dlgAsistentes').close();
 });
 
+/* Tarea rápida desde la reunión */
+$('btnTareaDesdeReunion').addEventListener('click', () => {
+  if(!usuarioActual) return alert('Identifícate primero');
+  $('ntTitulo').value = '';
+  $('ntResponsable').innerHTML = '<option value="">— Sin asignar —</option>' +
+    usuarios.map(u=>`<option value="${esc(u.id)}">${esc(u.nombre||u.id)}</option>`).join('');
+  $('ntLimite').value = '';
+  $('dlgNuevaTarea').showModal();
+});
+$('btnCrearTarea').addEventListener('click', async () => {
+  const titulo = $('ntTitulo').value.trim();
+  if(!titulo) return alert('Escribe la descripción de la tarea');
+  try{
+    await colTareas.add({titulo, responsable:$('ntResponsable').value, limite:$('ntLimite').value,
+      completada:false, creadaPor:usuarioActual, creadaEn:Date.now()});
+    $('dlgNuevaTarea').close();
+    avisaVisibilidadTarea($('ntResponsable').value, titulo);
+  }catch(e){ alert('Error al crear la tarea: '+e.message); }
+});
+
+// Confirmación tras crear una tarea asignada a otra persona
+function avisaVisibilidadTarea(responsable, titulo){
+  if (responsable && responsable !== usuarioActual){
+    const resp = usuarios.find(u=>u.id===responsable);
+    alert(`Tarea "${titulo}" creada y asignada a ${resp ? (resp.nombre||resp.id) : 'sin asignar'}.`);
+  }
+}
+
 /* ================= LISTADO + BÚSQUEDA ================= */
 function renderListaReuniones(){
   $('tbodyReuniones').innerHTML = reuniones.map(r => {
@@ -624,6 +894,119 @@ $('btnBuscar').addEventListener('click', () => {
   $('dlgBusqueda').showModal();
 });
 
+/* ================= IMPORTAR USUARIOS DESDE EXCEL ================= */
+let filasExcel = [];   // [{datos:[...], seleccionada}]
+let cabecerasExcel = [];
+
+function analizarExcel(){
+  const f = $('fichExcel').files[0];
+  if(!f) return alert('Selecciona primero el archivo RelPerCen.xls');
+  const lector = new FileReader();
+  lector.onload = ev => {
+    try{
+      const libro = XLSX.read(ev.target.result, {type:'array', cellDates:false});
+      const hoja = libro.Sheets[libro.SheetNames[0]];
+      const matriz = XLSX.utils.sheet_to_json(hoja, {header:1, blankrows:false, defval:''});
+      if (!matriz.length) return alert('El archivo está vacío.');
+      cabecerasExcel = matriz[0].map((c,i) => String(c).trim() || 'Columna ' + (i+1));
+      filasExcel = matriz.slice(1)
+        .filter(fila => fila.some(c => String(c).trim() !== ''))
+        .map(fila => ({datos: fila.map(String), seleccionada: true}));
+      abrirModalExcel();
+    }catch(e){ alert('No se pudo leer el archivo: ' + e.message); }
+  };
+  lector.readAsArrayBuffer(f);
+}
+
+function abrirModalExcel(){
+  const opciones = cabecerasExcel.map((c,i)=>`<option value="${i}">${esc(c)}</option>`).join('');
+  $('mapId').innerHTML = opciones;
+  $('mapNombre').innerHTML = '<option value="">— ninguna —</option>' + opciones;
+  $('mapCargo').innerHTML = '<option value="">— ninguna —</option>' + opciones;
+  // Autodetección de columnas (RelPerCen: "Usuario IdEA" y "Empleado/a").
+  // El IdEA nunca puede salir de una columna de DNI/NIF.
+  const busca = (patrones, excluye = []) => cabecerasExcel.findIndex(c => {
+    const l = c.toLowerCase();
+    return patrones.some(p => l.includes(p)) && !excluye.some(x => l.includes(x));
+  });
+  const iId = busca(['idea','usuario'], ['dni','nif']);
+  const iNom = busca(['empleado','nombre','apel']);
+  const iCar = busca(['cargo','puesto','categ','funcion','departamento','especialidad']);
+  if (iId >= 0) $('mapId').value = iId;
+  if (iNom >= 0) $('mapNombre').value = iNom;
+  if (iCar >= 0) $('mapCargo').value = iCar;
+  $('chkMarcarTodos').checked = true;
+  $('theadExcel').innerHTML = `<tr><th style="width:34px">✔</th><th>IdEA</th><th>Nombre</th><th>Cargo</th></tr>`;
+  pintaFilasExcel();
+  $('dlgExcel').showModal();
+}
+
+function pintaFilasExcel(){
+  const iId = +$('mapId').value, iNom = $('mapNombre').value === '' ? null : +$('mapNombre').value, iCar = $('mapCargo').value === '' ? null : +$('mapCargo').value;
+  $('tbodyExcel').innerHTML = filasExcel.map((fila, idx) => {
+    const id = String(fila.datos[iId]||'').trim();
+    return `<tr>
+      <td><input type="checkbox" class="checkGrande" data-fila="${idx}" ${fila.seleccionada?'checked':''}></td>
+      <td><b>${esc(id)}</b></td>
+      <td>${esc([iNom!==null && fila.datos[iNom]].filter(Boolean).join(''))}</td>
+      <td>${esc(iCar!==null ? (fila.datos[iCar]||'') : '')}</td>
+    </tr>`;
+  }).join('');
+  actualizaResumenExcel();
+  document.querySelectorAll('[data-fila]').forEach(chk => chk.addEventListener('change', () => {
+    filasExcel[+chk.dataset.fila].seleccionada = chk.checked;
+    actualizaResumenExcel();
+  }));
+}
+function actualizaResumenExcel(){
+  const n = filasExcel.filter(f=>f.seleccionada).length;
+  $('resumenExcel').textContent = `${n} de ${filasExcel.length} filas seleccionadas para importar. Los usuarios con un IdEA ya existente se actualizarán con los datos del archivo.`;
+}
+$('mapId').addEventListener('change', pintaFilasExcel);
+$('mapNombre').addEventListener('change', pintaFilasExcel);
+$('mapCargo').addEventListener('change', pintaFilasExcel);
+$('chkMarcarTodos').addEventListener('change', e => {
+  filasExcel.forEach(f => f.seleccionada = e.target.checked);
+  document.querySelectorAll('[data-fila]').forEach(chk => chk.checked = e.target.checked);
+  actualizaResumenExcel();
+});
+
+$('btnConfirmarImport').addEventListener('click', async () => {
+  const iId = +$('mapId').value;
+  const iNom = $('mapNombre').value === '' ? null : +$('mapNombre').value;
+  const iCar = $('mapCargo').value === '' ? null : +$('mapCargo').value;
+  const passComun = $('passExcel').value;
+  if (passComun && passComun.length < 6) return alert('La contraseña inicial debe tener al menos 6 caracteres');
+  const seleccionadas = filasExcel.filter(f => f.seleccionada && String(f.datos[iId]||'').trim() !== '');
+  if (!seleccionadas.length) return alert('No hay filas seleccionadas con IdEA válido.');
+  const conPintaDni = seleccionadas.filter(f => /^\d{7,8}[A-Za-z]?$/.test(String(f.datos[iId]).trim())).length;
+  if (conPintaDni && !confirm(`Atención: ${conPintaDni} de los valores de la columna IdEA parecen DNI, no usuarios IdEA (formato tipo "amargom123").\n\nRevisa el desplegable «Columna del IdEA». ¿Quieres importar de todos modos?`)) return;
+  $('btnConfirmarImport').disabled = true;
+  let importados = 0, errores = 0;
+  for (const fila of seleccionadas){
+    const id = String(fila.datos[iId]).trim().replace(/[\/\\.#$\[\]]/g,'-');
+    try{
+      // Contraseña inicial: la común si se indicó; si no, el propio IdEA del usuario
+      const pass = passComun || id;
+      let credenciales = {};
+      if (pass.length >= 6){
+        const salt = nuevaSal();
+        credenciales = {passSalt: salt, passHash: await hashContrasena(salt, pass)};
+      }
+      await colUsuarios.doc(id).set({
+        nombre: iNom!==null ? String(fila.datos[iNom]||'').trim() : '',
+        cargo: iCar!==null ? String(fila.datos[iCar]||'').trim() : '',
+        ...(credenciales)
+      }, {merge:true});
+      importados++;
+    }catch(e){ errores++; }
+  }
+  $('btnConfirmarImport').disabled = false;
+  $('passExcel').value = '';
+  $('dlgExcel').close();
+  alert(`Importación terminada: ${importados} usuario(s) guardados${errores?`, ${errores} con error`:''}.`);
+});
+
 /* ================= TAREAS ================= */
 colTareas.onSnapshot(snap => {
   tareas = snap.docs.map(d => ({id:d.id, ...d.data()})).sort((a,b)=> (a.completada?1:0)-(b.completada?1:0) || (a.limite||'9999').localeCompare(b.limite||'9999'));
@@ -632,26 +1015,51 @@ colTareas.onSnapshot(snap => {
 
 function renderSelectorTareas(){
   const opts = '<option value="">— Sin asignar —</option>' + usuarios.map(u=>`<option value="${esc(u.id)}">${esc(u.nombre||u.id)}</option>`).join('');
-  $('tarResponsable').innerHTML = opts;
-  $('edResponsable').innerHTML = opts;
+  $('ntResponsable').innerHTML = opts;   // modal "nueva tarea" (Reunión y Tareas)
+  $('edResponsable').innerHTML = opts;   // modal de edición de tarea
 }
 
 function renderTareas(){
-  const soloMias = !$('chkVerTodas').checked;
-  const visibles = tareas.filter(t => !soloMias || (t.responsable === usuarioActual && !t.completada));
+  // Filtro por estado: 'pendientes' (por defecto), 'mias', 'finalizadas', 'todas'
+  let visibles;
+  if (filtroTareas === 'finalizadas') visibles = tareas.filter(t => t.completada);
+  else if (filtroTareas === 'todas') visibles = tareas.slice();
+  else if (filtroTareas === 'mias') visibles = tareas.filter(t => t.responsable === usuarioActual);
+  else {
+    visibles = tareas.filter(t => !t.completada);
+    // las asignadas al usuario actual primero
+    visibles.sort((a,b) => (b.responsable===usuarioActual) - (a.responsable===usuarioActual));
+  }
   const miasPend = tareas.filter(t => t.responsable===usuarioActual && !t.completada);
+  const tituloSeccion = {pendientes:'Tareas pendientes', mias:'Mis tareas', finalizadas:'Tareas finalizadas', todas:'Todas las tareas'}[filtroTareas];
   $('misTareas').innerHTML = usuarioActual ? `
-    <div class="aviso">Tienes <b>${miasPend.length}</b> tarea(s) pendiente(s) asignada(s) a ti.</div>` :
+    <div class="aviso">${tituloSeccion} · Tienes <b>${miasPend.length}</b> pendiente(s) asignada(s) a ti${miasPend.length? ' (se muestran primero)':''}.</div>` :
     '<div class="aviso">Identifícate arriba para ver tus tareas.</div>';
 
   $('tbodyTareas').innerHTML = visibles.map(t => {
     const resp = usuarios.find(u=>u.id===t.responsable);
-    const tarde = t.limite && !t.completada && t.limite < hoyISO();
-    return `<tr class="${t.completada?'tareaCompleta':''}">
+    // Degradado verde→rojo según días que queden (verde pleno a 14 días o más, rojo el día de caducidad)
+    let estiloFila = '', estiloFecha = '', claseParpadeo = '';
+    if (t.limite && !t.completada){
+      const dias = Math.round((new Date(t.limite+'T00:00:00') - new Date(hoyISO()+'T00:00:00')) / 86400000);
+      const matiz = Math.min(Math.max(dias,0)/14, 1) * 120;   // 0º=rojo … 120º=verde
+      if (dias < 0){
+        estiloFila = 'background:#fadbd8';
+        estiloFecha = 'color:var(--acento);font-weight:700';
+      } else {
+        estiloFila = `background:hsla(${matiz},80%,55%,.25)`;
+        estiloFecha = `color:hsl(${matiz},70%,28%);font-weight:600`;
+        // Parpadeo en los últimos días: 3 días→1/s, 2 y 1 días→2/s, caduca hoy→3/s
+        if (dias === 0) claseParpadeo = 'parpadeo3';
+        else if (dias <= 2) claseParpadeo = 'parpadeo2';
+        else if (dias === 3) claseParpadeo = 'parpadeo1';
+      }
+    }
+    return `<tr class="${t.completada?'tareaCompleta':''}" style="${estiloFila}">
       <td><input type="checkbox" class="checkGrande" data-check="${t.id}" ${t.completada?'checked':''} title="Marcar como completada"></td>
       <td>${esc(t.titulo)}${t.descripcion?`<div class="muted">${esc(t.descripcion)}</div>`:''}</td>
       <td>${resp?esc(resp.nombre||resp.id):'—'}</td>
-      <td style="${tarde?'color:var(--acento);font-weight:600':''}">${t.limite?fechaBonita(t.limite):''}${tarde?' ⚠':''}</td>
+      <td class="${claseParpadeo}" style="${estiloFecha}">${t.limite?fechaBonita(t.limite):''}${t.limite && !t.completada && t.limite < hoyISO() ? ' ⚠ vencida':''}</td>
       <td class="acciones"><button class="btn sec" data-editar="${t.id}">Editar</button></td>
     </tr>`;
   }).join('') || '<tr><td colspan="5" class="muted">No hay tareas que mostrar con el filtro actual.</td></tr>';
@@ -666,16 +1074,14 @@ function renderTareas(){
   document.querySelectorAll('[data-editar]').forEach(b => b.addEventListener('click', () => abrirEditarTarea(b.dataset.editar)));
 }
 
-$('chkVerTodas').addEventListener('change', renderTareas);
-
-$('btnNuevaTarea').addEventListener('click', async () => {
-  const titulo = $('tarTitulo').value.trim();
-  if(!titulo) return alert('Escribe la descripción de la tarea');
-  if(!usuarioActual) return alert('Identifícate primero');
-  await colTareas.add({titulo, responsable:$('tarResponsable').value, limite:$('tarLimite').value,
-    completada:false, creadaPor:usuarioActual, creadaEn:Date.now()});
-  $('tarTitulo').value = ''; $('tarLimite').value = '';
-});
+// Botones de filtro + botón "+ Tarea" (reutiliza el modal de la pestaña Reunión)
+let filtroTareas = 'pendientes';
+document.querySelectorAll('[data-filtro]').forEach(b => b.addEventListener('click', () => {
+  filtroTareas = b.dataset.filtro;
+  document.querySelectorAll('[data-filtro]').forEach(x => x.className = x===b ? 'btn' : 'btn sec');
+  renderTareas();
+}));
+$('btnTareaDesdeTareas').addEventListener('click', () => $('btnTareaDesdeReunion').click());
 
 function abrirEditarTarea(id){
   const t = tareas.find(x=>x.id===id); if(!t) return;
@@ -779,51 +1185,38 @@ function fechaBonita(iso){
 }
 
 /* ================= PWA: SERVICE WORKER (ámbito relativo) ================= */
-const CODIGO_SW = `/* Service Worker de Reuniones Equipo Directivo.
-   Ámbito: la carpeta de esta app. No interfiere con otras apps del dominio. */
-const CACHE = 'reuniones-v1';
-const ARCHIVOS = ['./', './index.html'];
-self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ARCHIVOS)).then(() => self.skipWaiting()));
-});
-self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
-});
-self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
-  // Nunca cachear Firebase ni llamadas externas: solo archivos propios de esta app
-  if (!e.request.url.startsWith(self.registration.scope)) return;
-  e.respondWith(
-    fetch(e.request).then(resp => {
-      const copia = resp.clone();
-      caches.open(CACHE).then(c => c.put(e.request, copia));
-      return resp;
-    }).catch(() => caches.match(e.request).then(r => r || caches.match('./index.html')))
-  );
-});`;
-
-$('btnDescargarSW').addEventListener('click', () => {
-  const blob = new Blob([CODIGO_SW], {type:'text/javascript'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = 'sw-reuniones.js'; a.click();
-});
-
+// El sw (sw-reuniones.js) está desplegado junto a este index.html, con scope './':
+// su ámbito queda limitado a esta carpeta y no interfiere con las demás apps del dominio.
 if ('serviceWorker' in navigator && location.protocol === 'https:'){
-  fetch('sw-reuniones.js', {method:'HEAD'}).then(r => {
-    if (r.ok){
-      navigator.serviceWorker.register('sw-reuniones.js', {scope:'./'})
-        .then(() => $('estadoSW').textContent = '✓ Service worker registrado (ámbito: esta carpeta).')
-        .catch(e => $('estadoSW').textContent = 'No se pudo registrar el sw: ' + e.message);
-    } else {
-      $('estadoSW').textContent = 'Coloca sw-reuniones.js junto a index.html para activar el modo offline.';
-    }
-  }).catch(() => {});
+  navigator.serviceWorker.register('sw-reuniones.js', {scope:'./'})
+    .then(reg => $('estadoSW').textContent = '✓ Service worker registrado (ámbito: ' + reg.scope + ').')
+    .catch(e => $('estadoSW').textContent = 'No se pudo registrar el sw: ' + e.message);
 }
 
 /* ================= ARRANQUE ================= */
 renderZonasAdmin();
-mostrarLogin();
+iniciarSplash();
 $('expPeriodo').dispatchEvent(new Event('change'));
+
+/* ---- Pantalla de inicio: fade in/out, 5 s; un clic la salta solo en esa ocasión ---- */
+function iniciarSplash(){
+  const splash = $('splash');
+  window._splashActivo = true;
+  splash.style.display = 'flex';   // el fondo es opaco desde el primer fotograma: nunca se ve lo de detrás
+  requestAnimationFrame(() => requestAnimationFrame(() => $('splashImg').style.opacity = '1'));
+  const temporizador = setTimeout(cerrarSplash, 5000);
+  splash.addEventListener('click', cerrarSplash);
+  function cerrarSplash(){
+    clearTimeout(temporizador);
+    splash.removeEventListener('click', cerrarSplash);
+    $('splashImg').style.opacity = '0';
+    setTimeout(() => {
+      splash.style.display = 'none';
+      window._splashActivo = false;
+      mostrarLogin();
+    }, 950);   // espera al fundido de salida (.9s)
+  }
+}
 </script>
 </body>
 </html>
