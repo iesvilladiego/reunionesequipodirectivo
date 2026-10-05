@@ -721,9 +721,23 @@ function unaSolaAbierta(contenedor){
   }));
 }
 
+/* Los listeners de Firestore pueden morir definitivamente tras un error (p. ej. una
+   denegación puntual). Este envoltorio los reengancha automáticamente (hasta 3 veces),
+   porque un listener muerto se traduce en datos congelados en ese dispositivo. */
+function onSnapshotConReintento(colRef, nombre, ok, err){
+  let intentos = 0, unsub = null;
+  const engancha = () => { unsub = colRef.onSnapshot(snap => { intentos = 0; ok(snap); }, e => {
+    console.error('Error en listener ' + nombre + ':', e);
+    if (err) err(e);
+    if (++intentos <= 3) setTimeout(engancha, 3000 * intentos);
+  }); };
+  engancha();
+  return () => { if (unsub) unsub(); };   // desuscripción del listener vigente
+}
+
 /* ================= SESIÓN / USUARIOS ================= */
 authListo.then(() => {
-colUsuarios.onSnapshot(snap => {
+onSnapshotConReintento(colUsuarios, 'usuarios', snap => {
   usuarios = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b)=> (a.nombre||'').localeCompare(b.nombre||''));
   usuariosCargados = true;
   // Si solo queda un usuario, se le concede la administración automáticamente
@@ -1028,7 +1042,7 @@ $('mcRepite').addEventListener('input', compruebaRepeticionPass);
 /* ================= CURSOS ESCOLARES ================= */
 // Cada curso (1 sep – 31 ago) aísla reuniones, tareas y días no lectivos en subcolecciones
 authListo.then(() => {
-colCursos.onSnapshot(snap => {
+onSnapshotConReintento(colCursos, 'cursos', snap => {
   cursos = snap.docs.map(d => ({id:d.id, ...d.data()})).sort((a,b)=>(b.id||'').localeCompare(a.id||''));
   renderZonaCursos();
 }, err => console.error('Error leyendo cursos:', err));
@@ -1111,7 +1125,7 @@ function suscribirCurso(){
   reunionActiva = localStorage.getItem('reunionActiva_' + cursoActivo) || '';
   suscribirContenido();
   const refrescaCalendario = () => { if (!document.getElementById('tab-calendario').hidden) renderCalendario(); };
-  unsubReuniones = colReuniones.onSnapshot(snap => {
+  unsubReuniones = onSnapshotConReintento(colReuniones, 'reuniones', snap => {
     reuniones = snap.docs.map(d => ({id:d.id, ...d.data()})).sort((a,b)=> (b.fecha||'').localeCompare(a.fecha||''));
     renderListaReuniones();
     renderSelectorReuniones();
@@ -1119,11 +1133,11 @@ function suscribirCurso(){
   }, err => {
     $('estadoGuardado').innerHTML = `<span style="color:var(--acento)">Error Firestore: ${esc(err.message)}</span>`;
   });
-  unsubTareas = colTareas.onSnapshot(snap => {
+  unsubTareas = onSnapshotConReintento(colTareas, 'tareas', snap => {
     tareas = snap.docs.map(d => ({id:d.id, ...d.data()})).sort((a,b)=> (a.completada?1:0)-(b.completada?1:0) || (a.limite||'9999').localeCompare(b.limite||'9999'));
     renderTareas();
   });
-  unsubCursoDoc = colCursos.doc(cursoActivo).onSnapshot(snap => {
+  unsubCursoDoc = onSnapshotConReintento(colCursos.doc(cursoActivo), 'curso', snap => {
     const d = snap.exists ? snap.data() : {};
     diasNoLectivos = d.diasNoLectivos || {};
     cursoEscolar = d.etiqueta || '';
