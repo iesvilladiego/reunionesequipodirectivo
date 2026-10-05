@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Reuniones Equipo Directivo</title>
-<meta name="theme-color" content="#1e3a5f">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#1e3a8a">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1730">
 <link rel="icon" href="img/icon.svg" type="image/svg+xml">
 <link rel="icon" href="img/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="img/favicon-16.png" sizes="16x16" type="image/png">
@@ -16,91 +18,175 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
+/* ================= TEMA (día/noche automático) ================= */
 :root{
-  --primario:#1e3a5f; --primario-claro:#2e5a8f; --acento:#c0392b; --ok:#27ae60;
-  --fondo:#f4f6f9; --tarjeta:#fff; --texto:#2c3e50; --gris:#7f8c8d; --borde:#dfe4ea;
+  color-scheme:light dark;
+  --primario:#1d4ed8; --acento:#dc2626; --ok:#16a34a;
+  --fondo:#eef2f7; --tarjeta:#ffffff; --texto:#1f2937; --texto-suave:#6b7280;
+  --borde:#dbe2ea; --cab1:#1e3a8a; --cab2:#2563eb;
+  --hover-fila:rgba(37,99,235,.06); --foco:rgba(59,130,246,.30);
+  --aviso-fondo:#fef3c7; --aviso-texto:#78350f;
+  --error-fondo:#fee2e2; --error-texto:#7f1d1d;
+  --sombra:0 1px 2px rgba(15,23,42,.06),0 4px 16px rgba(15,23,42,.07);
+  --sombra-bot:0 1px 3px rgba(15,23,42,.18);
+  --radio:14px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --primario:#60a5fa; --acento:#f87171; --ok:#4ade80;
+    --fondo:#0b1220; --tarjeta:#151e2e; --texto:#e5eaf1; --texto-suave:#8ea0b5;
+    --borde:#2a3850; --cab1:#0d1730; --cab2:#1e3a8a;
+    --hover-fila:rgba(96,165,250,.08); --foco:rgba(96,165,250,.30);
+    --aviso-fondo:rgba(245,158,11,.10); --aviso-texto:#fbbf24;
+    --error-fondo:rgba(248,113,113,.12); --error-texto:#fca5a5;
+    --sombra:0 1px 2px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.35);
+    --sombra-bot:0 1px 3px rgba(0,0,0,.5);
+  }
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--fondo);color:var(--texto);min-height:100vh;-webkit-text-size-adjust:100%}
-header{background:var(--primario);color:#fff;padding:10px 16px;padding-top:max(10px, env(safe-area-inset-top));display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:50;box-shadow:0 2px 6px rgba(0,0,0,.2)}
-header .logo{width:34px;height:34px;flex:none}
-header h1{font-size:1.05rem;font-weight:600;flex:1;min-width:150px}
-#sesionActual{font-size:.9rem;background:#33557f;border-radius:6px;padding:6px 10px}
-nav{display:flex;background:var(--primario-claro);overflow-x:auto}
-nav button{flex:1;padding:11px 14px;background:none;border:none;color:#cfe0f3;font-size:.88rem;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;text-transform:uppercase;font-weight:600;letter-spacing:.3px}
-nav button.activo{color:#fff;font-weight:600;border-bottom-color:#f1c40f;background:rgba(255,255,255,.08)}
-main{max-width:1100px;margin:0 auto;padding:16px}
-.tarjeta{background:var(--tarjeta);border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:16px;margin-bottom:16px}
-h2{font-size:1.15rem;color:var(--primario);margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-h3{font-size:.98rem;color:var(--primario);margin:12px 0 8px}
-button.btn{background:var(--primario);color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:.88rem}
-button.btn:hover{background:var(--primario-claro)}
-button.btn.sec{background:#fff;color:var(--primario);border:1px solid var(--primario)}
+html{-webkit-text-size-adjust:100%;scrollbar-gutter:stable}
+body{
+  font-family:'Segoe UI Variable Display','Segoe UI',system-ui,-apple-system,sans-serif;
+  background:var(--fondo);color:var(--texto);min-height:100vh;line-height:1.5;
+  -webkit-tap-highlight-color:transparent;overscroll-behavior-y:none;
+  transition:background .3s ease,color .3s ease;
+}
+/* ================= CABECERA Y NAVEGACIÓN ================= */
+header{
+  background:linear-gradient(135deg,var(--cab1),var(--cab2));color:#fff;
+  padding:10px 18px;padding-top:max(10px,env(safe-area-inset-top));
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:50;
+  box-shadow:0 2px 14px rgba(0,0,0,.28);
+}
+header .logo{width:36px;height:36px;flex:none;filter:drop-shadow(0 1px 3px rgba(0,0,0,.3))}
+header h1{font-size:clamp(1rem,2.5vw,1.2rem);font-weight:700;flex:1;min-width:150px;letter-spacing:.2px}
+#sesionActual{font-size:.9rem;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:6px 14px;backdrop-filter:blur(6px)}
+nav{
+  display:flex;gap:4px;padding:6px 10px;overflow-x:auto;scrollbar-width:none;
+  background:linear-gradient(135deg,var(--cab1),var(--cab2));
+  box-shadow:0 2px 8px rgba(0,0,0,.18);
+}
+nav::-webkit-scrollbar{display:none}
+nav button{
+  flex:1;padding:9px 14px;background:transparent;border:none;color:rgba(255,255,255,.75);
+  font-size:.85rem;cursor:pointer;white-space:nowrap;text-transform:uppercase;font-weight:600;
+  letter-spacing:.4px;border-radius:999px;transition:background .2s,color .2s;
+}
+nav button:hover{color:#fff;background:rgba(255,255,255,.1)}
+nav button.activo{color:#fff;background:rgba(255,255,255,.18);box-shadow:inset 0 -2px 0 #fbbf24}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 48px}
+/* ================= TARJETAS ================= */
+.tarjeta{
+  background:var(--tarjeta);border:1px solid var(--borde);border-radius:var(--radio);
+  box-shadow:var(--sombra);padding:18px;margin-bottom:16px;
+  transition:background .3s ease,border-color .3s ease;
+}
+h2{font-size:1.15rem;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+h3{font-size:1rem;margin:12px 0 8px}
+/* Tarjetas anidadas (p. ej. dentro de «Usuarios») */
+.tarjeta .tarjeta{box-shadow:none;border:1px solid var(--borde);margin-bottom:10px}
+.tarjeta .tarjeta h2{font-size:1rem}
+/* ================= CONTROLES ================= */
+button.btn{
+  background:var(--primario);color:#fff;border:none;padding:9px 16px;border-radius:999px;
+  cursor:pointer;font-size:.88rem;font-weight:600;box-shadow:var(--sombra-bot);
+  transition:transform .15s ease,box-shadow .15s ease,filter .15s ease;
+}
+button.btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px rgba(15,23,42,.22)}
+button.btn:active:not(:disabled){transform:translateY(0)}
+button.btn.sec{background:var(--tarjeta);color:var(--primario);border:1.5px solid var(--borde);box-shadow:none}
+button.btn.sec:hover:not(:disabled){border-color:var(--primario);box-shadow:none}
 button.btn.peligro{background:var(--acento)}
 button.btn.ok{background:var(--ok)}
-button.btn:disabled{opacity:.5;cursor:default}
-input,select,textarea{font-family:inherit;font-size:.9rem;padding:8px;border:1px solid var(--borde);border-radius:6px;background:#fff;color:var(--texto)}
-input:focus,select:focus,textarea:focus{outline:2px solid var(--primario-claro)}
+button.btn:disabled{opacity:.45;cursor:default;transform:none}
+input,select,textarea{
+  font-family:inherit;font-size:.9rem;padding:9px 12px;border:1.5px solid var(--borde);
+  border-radius:10px;background:var(--tarjeta);color:var(--texto);
+  transition:border-color .15s ease,box-shadow .15s ease,background .3s ease;
+}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primario);box-shadow:0 0 0 3px var(--foco)}
+input::placeholder,textarea::placeholder{color:var(--texto-suave)}
 label{font-size:.85rem;font-weight:600;display:block;margin-bottom:4px}
 .fila{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px}
 .fila>div{flex:1;min-width:140px}
+/* ================= TABLAS ================= */
 table{width:100%;border-collapse:collapse;font-size:.88rem}
-th{text-align:left;background:#eef2f7;color:var(--primario);padding:8px;border-bottom:2px solid var(--borde)}
-td{padding:8px;border-bottom:1px solid var(--borde);vertical-align:top}
-tr:hover td{background:#fafbfd}
-.muted{color:var(--gris);font-size:.82rem}
-.etiqueta{display:inline-block;background:#e8eef6;color:var(--primario);border-radius:10px;padding:2px 9px;font-size:.75rem;margin:1px}
-.etiqueta.admin{background:#fdecea;color:var(--acento);font-weight:600}
-.etiqueta.ok{background:#e8f8ef;color:var(--ok);font-weight:600}
-.aviso{background:#fff8e1;border-left:4px solid #f1c40f;padding:10px 12px;border-radius:6px;font-size:.85rem;margin-bottom:12px}
-.error{background:#fdecea;border-left:4px solid var(--acento);padding:10px 12px;border-radius:6px;font-size:.85rem;margin-bottom:12px}
-textarea.editor{width:100%;min-height:420px;font-family:'Segoe UI',sans-serif;font-size:.95rem;line-height:1.55;resize:vertical;white-space:pre-wrap}
-#estadoGuardado{font-size:.78rem;color:var(--gris)}
-.editores span{display:inline-block;width:30px;height:30px;border-radius:50%;background:var(--primario-claro);color:#fff;text-align:center;line-height:30px;font-size:.75rem;font-weight:600;margin-left:-6px;border:2px solid #fff}
+th{
+  text-align:left;font-size:.72rem;text-transform:uppercase;letter-spacing:.6px;
+  color:var(--texto-suave);background:transparent;padding:10px 8px;border-bottom:2px solid var(--borde);
+}
+td{padding:10px 8px;border-bottom:1px solid var(--borde);vertical-align:top}
+tr:hover td{background:var(--hover-fila)}
+.muted{color:var(--texto-suave);font-size:.82rem}
+.etiqueta{display:inline-block;background:var(--primario-suave,#e8eef6);color:var(--primario);border-radius:999px;padding:3px 10px;font-size:.75rem;margin:1px;font-weight:600}
+.etiqueta.admin{background:rgba(220,38,38,.12);color:var(--acento)}
+.etiqueta.ok{background:rgba(22,163,74,.14);color:var(--ok)}
+:root{--primario-suave:#e8eef6}
+@media(prefers-color-scheme:dark){:root{--primario-suave:rgba(96,165,250,.15)}}
+.aviso{background:var(--aviso-fondo);color:var(--aviso-texto);border-left:4px solid #f59e0b;padding:10px 14px;border-radius:10px;font-size:.85rem;margin-bottom:12px}
+.error{background:var(--error-fondo);color:var(--error-texto);border-left:4px solid var(--acento);padding:10px 14px;border-radius:10px;font-size:.85rem;margin-bottom:12px}
+textarea.editor{width:100%;min-height:420px;font-size:.95rem;line-height:1.6;resize:vertical;white-space:pre-wrap;border-radius:12px}
+#estadoGuardado{font-size:.78rem;color:var(--texto-suave)}
+.editores span{
+  display:inline-block;width:30px;height:30px;border-radius:50%;background:var(--primario);color:#fff;
+  text-align:center;line-height:30px;font-size:.75rem;font-weight:600;margin-left:-6px;border:2px solid var(--tarjeta);
+}
 .tareaCompleta td{opacity:.55;text-decoration:line-through}
+.checkGrande{width:19px;height:19px;cursor:pointer;accent-color:var(--ok)}
+.acciones{display:flex;gap:6px;flex-wrap:wrap}
 /* Degradado y parpadeo de tareas por proximidad de la fecha límite */
 @keyframes parpadeo{0%,30%{background:#ff5b4d;color:#fff}40%,100%{background:transparent}}
 .parpadeo1{animation:parpadeo 1s infinite}
 .parpadeo2{animation:parpadeo .5s infinite}
 .parpadeo3{animation:parpadeo .333s infinite}
-.checkGrande{width:19px;height:19px;cursor:pointer;accent-color:var(--ok)}
-.acciones{display:flex;gap:6px;flex-wrap:wrap}
-dialog{border:none;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.3);padding:20px;min-width:320px;max-width:520px;width:92vw;margin:auto;position:fixed;inset:0}
-dialog::backdrop{background:rgba(0,0,0,.45)}
+/* ================= DIÁLOGOS ================= */
+dialog{
+  border:1px solid var(--borde);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.35);
+  padding:22px;min-width:320px;max-width:520px;width:92vw;margin:auto;position:fixed;inset:0;
+  background:var(--tarjeta);color:var(--texto);
+}
+dialog::backdrop{background:rgba(8,15,30,.55);backdrop-filter:blur(3px)}
 dialog h3{margin-top:0}
-/* ---- Acordeones (tarjetas plegables; solo una abierta por ventana) ---- */
-.tarjeta.ac > h2{cursor:pointer;user-select:none}
-.tarjeta.ac > h2::after{content:'▸';margin-left:auto;font-size:1.05rem;transition:transform .25s;color:var(--gris)}
-.tarjeta.ac.abierta > h2::after{transform:rotate(90deg);color:var(--primario)}
-.tarjeta.ac > *:not(h2){display:none}
-.tarjeta.ac.abierta > *:not(h2){display:block;animation:acAbre .25s ease}
-/* Tarjetas anidadas dentro de otra tarjeta (sin sombra propia, borde suave) */
-.tarjeta .tarjeta{box-shadow:none;border:1px solid var(--borde);margin-bottom:10px}
-.tarjeta .tarjeta h2{font-size:1rem}
+/* ================= ACORDEONES ================= */
+.tarjeta.ac{padding:0}
+.tarjeta.ac>h2{cursor:pointer;user-select:none;padding:14px 18px;margin:0}
+.tarjeta.ac>h2::after{content:'▸';margin-left:auto;font-size:1.05rem;transition:transform .25s;color:var(--texto-suave)}
+.tarjeta.ac.abierta>h2{border-bottom:1px solid var(--borde)}
+.tarjeta.ac.abierta>h2::after{transform:rotate(90deg);color:var(--primario)}
+.tarjeta.ac>*:not(h2){display:none}
+.tarjeta.ac.abierta>*:not(h2){display:block;margin:14px 18px 0;animation:acAbre .25s ease}
+.tarjeta.ac.abierta::after{content:'';display:block;height:16px}
 @keyframes acAbre{from{opacity:0;transform:translateY(-6px)}}
 /* Tareas como acordeones */
-.tareaAc{background:var(--tarjeta);border:1px solid var(--borde);border-radius:10px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}
-.tareaAc .acCab{display:flex;gap:10px;align-items:center;padding:10px 12px;cursor:pointer;flex-wrap:wrap}
+.tareaAc{background:var(--tarjeta);border:1px solid var(--borde);border-radius:12px;margin-bottom:10px;box-shadow:var(--sombra);overflow:hidden;transition:border-color .2s}
+.tareaAc:hover{border-color:var(--primario)}
+.tareaAc .acCab{display:flex;gap:10px;align-items:center;padding:10px 14px;cursor:pointer;flex-wrap:wrap}
 .tareaAc .acCab .tTit{flex:1;min-width:140px;font-weight:600}
-.tareaAc .acCab .flecha{color:var(--gris);transition:transform .25s}
+.tareaAc .acCab .flecha{color:var(--texto-suave);transition:transform .25s}
 .tareaAc.abierta .flecha{transform:rotate(90deg)}
-.tareaAc .acCuerpo{display:none;padding:4px 12px 12px;border-top:1px solid var(--borde)}
+.tareaAc .acCuerpo{display:none;padding:4px 14px 14px;border-top:1px solid var(--borde)}
 .tareaAc.abierta .acCuerpo{display:block;animation:acAbre .25s ease}
 .tareaAc.tareaCompleta .tTit{text-decoration:line-through;opacity:.55}
-/* ---- Transición entre pestañas: paso de hoja ---- */
+/* ================= TRANSICIÓN ENTRE PESTAÑAS: PASO DE HOJA ================= */
 section.hoja{animation:pasarHoja .5s ease both;transform-origin:left center}
 section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
 @keyframes pasarHoja{0%{opacity:0;transform:perspective(1500px) rotateY(-14deg) translateX(6%)}100%{opacity:1;transform:none}}
 @keyframes pasarHojaAtras{0%{opacity:0;transform:perspective(1500px) rotateY(14deg) translateX(-6%)}100%{opacity:1;transform:none}}
+/* ================= RESPONSIVIDAD ================= */
 @media(max-width:640px){
-  main{padding:10px}
-  .tarjeta{padding:12px;overflow-x:auto}   /* las tablas deslizan en lugar de romper el diseño */
+  main{padding:12px 10px 36px}
+  .tarjeta{padding:14px;border-radius:12px;overflow-x:auto}   /* las tablas deslizan en lugar de romper el diseño */
+  .tarjeta.ac{padding:0}
+  .tarjeta.ac>h2{padding:12px 14px}
+  .tarjeta.ac.abierta>*:not(h2){margin:12px 14px 0}
   table{min-width:560px}
   header{padding:8px 10px;gap:8px}
   header h1{font-size:.95rem}
   #sesionActual{max-width:100%;flex:1 1 100%;text-align:center}
-  nav button{padding:10px 8px;font-size:.78rem;flex:1 1 auto}
+  nav{padding:4px 6px}
+  nav button{padding:9px 10px;font-size:.75rem;flex:1 1 auto}
   textarea.editor{min-height:55vh;font-size:1rem}   /* tamaño de letra legible evita el zoom de iOS */
+  .fila{gap:8px}
   .fila>div{min-width:120px}
   button.btn{padding:11px 14px;min-height:42px}     /* objetivos táctiles amplios */
   input,select{font-size:16px}                      /* evita el zoom automático de iOS al enfocar */
@@ -109,7 +195,7 @@ section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
   h2{font-size:1.05rem}
 }
 @media(min-width:641px) and (max-width:900px){
-  main{padding:14px}
+  main{padding:16px}
   textarea.editor{min-height:380px}
 }
 /* En pantallas táctiles sin ratón, el efecto hover no debe quedarse pegado */
