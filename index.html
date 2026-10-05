@@ -451,6 +451,9 @@ section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
 
 </main>
 
+<!-- Panel visible para errores de JavaScript (diagnóstico en el propio dispositivo) -->
+<div id="avisoGlobal" class="error" style="display:none;position:fixed;bottom:10px;left:10px;right:10px;z-index:400;max-height:40vh;overflow:auto"></div>
+
 <!-- ============ PANTALLA DE INICIO (splash) ============ -->
 <div id="splash" style="position:fixed;inset:0;background:#0d1f33;z-index:300;display:none;align-items:center;justify-content:center;cursor:pointer" title="Clic para pasar directamente al acceso">
   <img id="splashImg" src="img/ImagenInicio.jpg" alt="Reuniones Equipo Directivo" style="max-width:100%;max-height:100%;object-fit:contain;opacity:0;transition:opacity .9s ease">
@@ -1127,6 +1130,11 @@ function suscribirCurso(){
   const refrescaCalendario = () => { if (!document.getElementById('tab-calendario').hidden) renderCalendario(); };
   unsubReuniones = onSnapshotConReintento(colReuniones, 'reuniones', snap => {
     reuniones = snap.docs.map(d => ({id:d.id, ...d.data()})).sort((a,b)=> (b.fecha||'').localeCompare(a.fecha||''));
+    // Si la reunión activa guardada ya no existe (p. ej. borrada en otro dispositivo), se olvida
+    if (reunionActiva && !reuniones.some(r => r.id === reunionActiva)){
+      reunionActiva = '';
+      localStorage.removeItem('reunionActiva_' + cursoActivo);
+    }
     renderListaReuniones();
     renderSelectorReuniones();
     refrescaCalendario();
@@ -1882,7 +1890,26 @@ function fechaBonita(iso){
 // su ámbito queda limitado a esta carpeta y no interfiere con las demás apps del dominio.
 if ('serviceWorker' in navigator && location.protocol === 'https:'){
   navigator.serviceWorker.register('sw-reuniones.js', {scope:'./'}).catch(()=>{});
+  // Cuando un service worker NUEVO toma el control (tras actualizar la app), se recarga
+  // la página una sola vez para que el HTML servido coincida siempre con el código vivo
+  let recargadaPorSW = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (recargadaPorSW) return;
+    recargadaPorSW = true;
+    location.reload();
+  });
 }
+
+/* ================= DIAGNÓSTICO: errores visibles en pantalla ================= */
+function muestraErrorGlobal(mensaje){
+  const panel = document.getElementById('avisoGlobal');
+  if (!panel) return;
+  panel.style.display = 'block';
+  panel.innerHTML = '<b>Error de la aplicación:</b> ' + String(mensaje).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])) +
+    '<br><span style="font-size:.75rem">Haz una captura y comunícalo al administrador. Prueba también a recargar con Ctrl+F5.</span>' + panel.innerHTML;
+}
+window.addEventListener('error', e => muestraErrorGlobal(e.message + ' (línea ' + e.lineno + ')'));
+window.addEventListener('unhandledrejection', e => muestraErrorGlobal('Promesa rechazada: ' + (e.reason && e.reason.message ? e.reason.message : e.reason)));
 
 /* ================= ARRANQUE ================= */
 renderZonasAdmin();
