@@ -244,6 +244,7 @@ section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
   <button data-tab="calendario">📅 Calendario</button>
   <button data-tab="tareas">✅ Tareas</button>
   <button data-tab="config">⚙️ Configuración</button>
+  <button data-tab="ayuda">📖 Ayuda</button>
 </nav>
 
 <main>
@@ -384,6 +385,67 @@ section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
   <div class="tarjeta">
     <h2>Cursos escolares</h2>
     <div id="zonaCursos"></div>
+  </div>
+</section>
+
+<!-- ============ TAB AYUDA (tutorial) ============ -->
+<section id="tab-ayuda" hidden>
+  <div class="tarjeta">
+    <h2>📖 Primeros pasos</h2>
+    <ol style="margin:0 0 0 18px;display:grid;gap:8px;font-size:.92rem">
+      <li><b>Identifícate</b> con tu usuario IdEA y tu contraseña. La primera vez, un administrador debe darte de alta (o importar al equipo desde Excel) y comunicarte la contraseña inicial, que conviene cambiar en «Mi cuenta».</li>
+      <li><b>Elige el curso escolar</b> (Configuración → Cursos escolares): se detecta solo por la fecha, del 1 de septiembre al 31 de agosto. Cada curso aísla sus reuniones, tareas y días no lectivos.</li>
+      <li><b>Crea o abre una reunión</b> en la pestaña Reunión: fija la fecha (no puede ser fin de semana, festivo, ni repetir un día con otra reunión) y redacta el acta.</li>
+      <li><b>Importa los días no lectivos</b> (Configuración → Días no lectivos) con el archivo <code>DiasNoLectivos.json</code> de Gestión de Asuntos Propios: así el calendario y las validaciones de fechas son correctos.</li>
+    </ol>
+  </div>
+
+  <div class="tarjeta">
+    <h2>📝 Reuniones y actas</h2>
+    <ul style="margin:0 0 0 18px;display:grid;gap:8px;font-size:.92rem">
+      <li><b>Edición colaborativa:</b> todos los miembros conectados a la misma reunión ven los cambios al instante. El guardado es automático (medio segundo después de dejar de teclear) y también puedes pulsar «💾 Guardar acta».</li>
+      <li><b>Candado 🔓/🔒:</b> cierra un acta para dejarla en solo lectura (nadie podrá editarla ni eliminarla hasta reabrirla). Útil para congelar el acta definitiva de una reunión. Cualquier usuario puede abrir/cerrar; el icono aparece junto a cada acta del Listado.</li>
+      <li><b>Asistentes:</b> marca quiénes acudieron; aparecen en la cabecera del PDF exportado.</li>
+      <li><b>Lista y búsqueda:</b> el Listado muestra todas las actas del curso y permite buscar texto dentro de los asuntos clave.</li>
+      <li><b>Exportación a PDF:</b> en Configuración, por semana, quincena, mes, trimestre o curso completo, con el curso escolar en la cabecera.</li>
+    </ul>
+  </div>
+
+  <div class="tarjeta">
+    <h2>📅 Calendario</h2>
+    <ul style="margin:0 0 0 18px;display:grid;gap:8px;font-size:.92rem">
+      <li>Cada mes muestra los días con <b>actas</b> (borde verde e icono 📝, o 🔒 si está cerrada): pulsa sobre uno para abrir esa reunión ya cargada.</li>
+      <li>Los días <b>no lectivos</b> (fines de semana y festivos importados) aparecen sombreados; en ellos no se pueden crear reuniones.</li>
+      <li>El calendario refleja siempre el <b>curso activo</b> y se actualiza en tiempo real.</li>
+    </ul>
+  </div>
+
+  <div class="tarjeta">
+    <h2>✅ Tareas</h2>
+    <ul style="margin:0 0 0 18px;display:grid;gap:8px;font-size:.92rem">
+      <li>Crea tareas desde cualquier reunión con «+ Tarea»: descripción, responsable y fecha límite.</li>
+      <li>Los filtros <b>Pendientes / Mías / Finalizadas / Todas</b> organizan la vista; tus tareas pendientes aparecen las primeras.</li>
+      <li>El color de cada tarea indica la proximidad del límite: verde (lejos) → rojo (vencida), con parpadeo en los últimos 3 días.</li>
+      <li>Pulsa sobre una tarea para desplegarla y editarla o marcarla como completada con la casilla.</li>
+    </ul>
+  </div>
+
+  <div class="tarjeta">
+    <h2>⚙️ Administración</h2>
+    <ul style="margin:0 0 0 18px;display:grid;gap:8px;font-size:.92rem">
+      <li><b>Usuarios:</b> alta manual o importación masiva desde el Excel RelPerCen. La contraseña inicial es el propio IdEA (o una común); el usuario debe cambiarla después en «Mi cuenta». Solo los administradores ven esta tarjeta.</li>
+      <li><b>Cursos escolares:</b> crea el curso de un año de inicio (p. ej. 2027 → 2027/2028) y cambia el curso activo. Los datos de cada curso son independientes.</li>
+      <li><b>Días no lectivos:</b> importa el JSON seleccionando qué días incluir, y gestiona o elimina los ya importados con su categoría y detalle.</li>
+    </ul>
+  </div>
+
+  <div class="tarjeta">
+    <h2>📱 Instalación como aplicación</h2>
+    <ul style="margin:0 0 0 18px;display:grid;gap:8px;font-size:.92rem">
+      <li><b>Móvil (Android/iOS):</b> abre la web en el navegador y usa «Añadir a pantalla de inicio» / «Instalar» del menú del navegador.</li>
+      <li><b>Escritorio:</b> en Chrome/Edge, icono de instalación en la barra de direcciones; en macOS, desde el menú del navegador.</li>
+      <li>Instalada funciona como una app más, a pantalla completa y con icono propio, y el modo día/noche sigue automáticamente el tema del dispositivo.</li>
+    </ul>
   </div>
 </section>
 
@@ -606,7 +668,7 @@ const hoyISO = () => {
 };
 
 /* ================= PESTAÑAS (transición de paso de hoja) ================= */
-const ordenPestanas = ['reunion','listado','calendario','tareas','config'];
+const ordenPestanas = ['reunion','listado','calendario','tareas','config','ayuda'];
 document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => {
   const actual = document.querySelector('nav button.activo');
   if (actual === b) return;
@@ -1048,10 +1110,12 @@ function suscribirCurso(){
   if (unsubCursoDoc) unsubCursoDoc();
   reunionActiva = localStorage.getItem('reunionActiva_' + cursoActivo) || '';
   suscribirContenido();
+  const refrescaCalendario = () => { if (!document.getElementById('tab-calendario').hidden) renderCalendario(); };
   unsubReuniones = colReuniones.onSnapshot(snap => {
     reuniones = snap.docs.map(d => ({id:d.id, ...d.data()})).sort((a,b)=> (b.fecha||'').localeCompare(a.fecha||''));
     renderListaReuniones();
     renderSelectorReuniones();
+    refrescaCalendario();
   }, err => {
     $('estadoGuardado').innerHTML = `<span style="color:var(--acento)">Error Firestore: ${esc(err.message)}</span>`;
   });
@@ -1064,6 +1128,7 @@ function suscribirCurso(){
     diasNoLectivos = d.diasNoLectivos || {};
     cursoEscolar = d.etiqueta || '';
     pintaInfoDias();
+    refrescaCalendario();
   });
 }
 
@@ -1190,7 +1255,12 @@ $('btnEliminarDias').addEventListener('click', async () => {
   gestionDias.filter(d => !d.eliminar).forEach(d => restante[d.fecha] = {categorias: d.categorias, detalle: d.detalle});
   $('btnEliminarDias').disabled = true;
   try{
-    await colCursos.doc(cursoActivo).set({diasNoLectivos: restante}, {merge:true});
+    if (Object.keys(restante).length){
+      await colCursos.doc(cursoActivo).set({diasNoLectivos: restante}, {merge:true});
+    } else {
+      // set+merge con un mapa vacío sería un no-op en Firestore: hay que borrar el campo
+      await colCursos.doc(cursoActivo).update({diasNoLectivos: firebase.firestore.FieldValue.delete()});
+    }
     $('dlgGestionDias').close();
     alert(`Eliminados ${aBorrar.length} día(s) no lectivo(s).`);
   }catch(e){ alert('Error al eliminar: '+e.message); }
