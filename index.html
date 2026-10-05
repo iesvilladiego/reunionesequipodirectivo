@@ -1212,7 +1212,9 @@ $('btnConfirmarDias').addEventListener('click', async () => {
   sel.forEach(d => mapa[d.fecha] = {categorias: d.categorias, detalle: d.detalle});
   $('btnConfirmarDias').disabled = true;
   try{
-    await colCursos.doc(cursoActivo).set({diasNoLectivos: mapa}, {merge:true});
+    // update (no set+merge) para que el mapa importado REEMPLACE el anterior:
+    // la fusión profunda de Firestore conservaría días que ya no vienen en el archivo
+    await colCursos.doc(cursoActivo).update({diasNoLectivos: mapa});
     $('fichDias').value = '';
     $('dlgDias').close();
     alert(`Importados ${sel.length} días no lectivos del curso ${cursoEscolar}.`);
@@ -1278,9 +1280,10 @@ $('btnEliminarDias').addEventListener('click', async () => {
   $('btnEliminarDias').disabled = true;
   try{
     if (Object.keys(restante).length){
-      await colCursos.doc(cursoActivo).set({diasNoLectivos: restante}, {merge:true});
+      // IMPORTANTE: update reemplaza el mapa entero. Un set(..., {merge:true}) haría una
+      // fusión profunda y los días borrados seguirían existiendo en Firestore.
+      await colCursos.doc(cursoActivo).update({diasNoLectivos: restante});
     } else {
-      // set+merge con un mapa vacío sería un no-op en Firestore: hay que borrar el campo
       await colCursos.doc(cursoActivo).update({diasNoLectivos: firebase.firestore.FieldValue.delete()});
     }
     $('dlgGestionDias').close();
