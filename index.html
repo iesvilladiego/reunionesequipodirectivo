@@ -148,6 +148,7 @@ section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
     <div class="fila">
       <div><label>Reunión activa</label><select id="selReunion"></select></div>
       <div style="flex:0 0 auto;display:flex;gap:8px">
+        <button class="btn sec" id="btnCandado" title="Acta abierta: se puede editar">🔓 Abierta</button>
         <button class="btn sec" id="btnAsistentes">Asistentes</button>
         <button class="btn ok" id="btnTareaDesdeReunion">+ Tarea</button>
         <button class="btn peligro" id="btnBorrarReunion">Eliminar</button>
@@ -947,6 +948,7 @@ $('btnNuevaReunion').addEventListener('click', async () => {
   if (!colReuniones) return alert('Los datos del curso aún se están cargando. Espera unos segundos e inténtalo de nuevo.');
   const fecha = $('reFecha').value || hoyISO();
   if (!esDiaLectivo(fecha)) return alert('No se puede crear una reunión en un día no lectivo (fin de semana o festivo).');
+  if (reuniones.some(r => r.fecha === fecha)) return alert('Ya existe una reunión el ' + fechaBonita(fecha) + '. Solo puede haber una reunión por día.');
   const titulo = $('reTitulo').value.trim() || ('Reunión del ' + fechaBonita(fecha));
   try{
     const ref = await colReuniones.add({fecha, titulo, contenido:'', creadaPor:usuarioActual, creadaEn:firebase.firestore.FieldValue.serverTimestamp(), actualizadoPor:usuarioActual, actualizadoEn:Date.now()});
@@ -958,6 +960,7 @@ $('btnNuevaReunion').addEventListener('click', async () => {
 
 $('btnBorrarReunion').addEventListener('click', async () => {
   if(!reunionActiva) return;
+  if (reuniones.find(r=>r.id===reunionActiva)?.cerrada) return alert('El acta está cerrada con candado: ábrela antes de poder eliminarla.');
   if(confirm('¿Eliminar esta reunión y todo su contenido?')){
     await colReuniones.doc(reunionActiva).delete();
     reunionActiva = ''; localStorage.removeItem('reunionActiva_' + cursoActivo);
@@ -965,15 +968,43 @@ $('btnBorrarReunion').addEventListener('click', async () => {
   }
 });
 
+/* Candado de acta: cerrada = solo lectura; cualquier usuario puede abrir/cerrar */
+async function conmutarCandado(id){
+  const r = reuniones.find(x=>x.id===id); if(!r) return;
+  const accion = r.cerrada ? 'abrir' : 'cerrar';
+  if(!confirm(`¿Quieres ${accion} el acta "${r.titulo||'Sin título'}" (${fechaBonita(r.fecha)})?` +
+      (r.cerrada ? '' : '\n\nUna vez cerrada, nadie podrá editarla hasta que se vuelva a abrir.'))) return;
+  try{
+    await colReuniones.doc(id).set({cerrada: !r.cerrada}, {merge:true});
+  }catch(e){ alert('Error al actualizar el candado: '+e.message); }
+}
+$('btnCandado').addEventListener('click', () => {
+  if(!reunionActiva) return alert('Selecciona una reunión');
+  conmutarCandado(reunionActiva);
+});
+
 let unsubscribeContenido = null;
+function aplicarCandado(cerrada){
+  cerrada = !!cerrada;
+  $('reContenido').readOnly = cerrada;
+  $('reTitulo').disabled = cerrada;
+  $('reFecha').disabled = cerrada;
+  $('btnAsistentes').disabled = cerrada;
+  const btn = $('btnCandado');
+  btn.textContent = cerrada ? '🔒 Cerrada' : '🔓 Abierta';
+  btn.title = cerrada ? 'Acta cerrada: solo lectura (clic para abrir)' : 'Acta abierta: se puede editar (clic para cerrar)';
+  btn.disabled = false;
+}
 function suscribirContenido(){
   if (unsubscribeContenido) unsubscribeContenido();
   $('reContenido').value = ''; $('estadoGuardado').textContent = '';
   $('editores').innerHTML = '';
+  aplicarCandado(reuniones.find(r=>r.id===reunionActiva)?.cerrada);   // estado en caché hasta que llegue el snapshot
   if(!reunionActiva) return;
   unsubscribeContenido = colReuniones.doc(reunionActiva).onSnapshot(doc => {
     if(!doc.exists) return;
     const d = doc.data();
+    aplicarCandado(d.cerrada);
     $('reTitulo').value = d.titulo || '';
     if (!escribiendo || $('reContenido').value === '') $('reContenido').value = d.contenido || '';
     const au = usuarios.find(u=>u.id===d.actualizadoPor);
@@ -1002,6 +1033,7 @@ function pintaEditores(presencia){
 // Escritura con debounce: sincroniza ~medio segundo después de dejar de teclear
 $('reContenido').addEventListener('input', () => {
   if(!reunionActiva){ $('estadoGuardado').textContent = 'Selecciona o crea una reunión primero.'; return; }
+  if ($('reContenido').readOnly){ $('estadoGuardado').textContent = 'El acta está cerrada con candado: solo lectura.'; return; }
   escribiendo = true;
   $('estadoGuardado').textContent = 'Guardando…';
   clearTimeout(timerGuardado);
@@ -1019,8 +1051,17 @@ $('reFecha').addEventListener('change', () => {
 });
 function guardarYa(){
   if(!reunionActiva || !escribiendo) return;
+  if (reuniones.find(r=>r.id===reunionActiva)?.cerrada || $('reContenido').readOnly){
+    $('estadoGuardado').textContent = 'El acta está cerrada con candado: solo lectura.';
+    return;
+  }
   if ($('reFecha').value && !esDiaLectivo($('reFecha').value)){
     $('estadoGuardado').textContent = 'No se puede guardar: la fecha cae en día no lectivo.';
+    return;
+  }
+  const fechaDuplicada = reuniones.find(r => r.id !== reunionActiva && r.fecha === $('reFecha').value);
+  if (fechaDuplicada){
+    $('estadoGuardado').textContent = 'Ya existe una reunión el ' + fechaBonita(fechaDuplicada.fecha) + ': no puede haber dos el mismo día.';
     return;
   }
   clearTimeout(timerGuardado);
@@ -1091,7 +1132,10 @@ function renderListaReuniones(){
       <td>${fechaBonita(r.fecha)}</td>
       <td><a href="#" data-abrir="${r.id}" style="color:var(--primario);font-weight:600">${esc(r.titulo||'Sin título')}</a></td>
       <td class="muted">${au?esc(au.nombre):esc(r.actualizadoPor||'')} ${r.actualizadoEn?new Date(r.actualizadoEn).toLocaleString('es'):''}</td>
-      <td><button class="btn sec" data-abrir="${r.id}">Abrir</button></td>
+      <td class="acciones">
+        <button class="btn sec" data-candado="${r.id}" title="${r.cerrada?'Cerrada: solo lectura (clic para abrir)':'Abierta: editable (clic para cerrar)'}">${r.cerrada?'🔒':'🔓'}</button>
+        <button class="btn sec" data-abrir="${r.id}">Abrir</button>
+      </td>
     </tr>`;
   }).join('') || '<tr><td colspan="4" class="muted">Aún no hay reuniones.</td></tr>';
   document.querySelectorAll('[data-abrir]').forEach(a => a.addEventListener('click', e => {
@@ -1100,6 +1144,7 @@ function renderListaReuniones(){
     document.querySelector('nav button[data-tab="reunion"]').click();
     renderSelectorReuniones(); suscribirContenido();
   }));
+  document.querySelectorAll('[data-candado]').forEach(b => b.addEventListener('click', () => conmutarCandado(b.dataset.candado)));
 }
 
 function buscarAsuntos(texto){
