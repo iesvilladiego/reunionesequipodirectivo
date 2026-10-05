@@ -74,6 +74,9 @@ dialog h3{margin-top:0}
 .tarjeta.ac.abierta > h2::after{transform:rotate(90deg);color:var(--primario)}
 .tarjeta.ac > *:not(h2){display:none}
 .tarjeta.ac.abierta > *:not(h2){display:block;animation:acAbre .25s ease}
+/* Tarjetas anidadas dentro de otra tarjeta (sin sombra propia, borde suave) */
+.tarjeta .tarjeta{box-shadow:none;border:1px solid var(--borde);margin-bottom:10px}
+.tarjeta .tarjeta h2{font-size:1rem}
 @keyframes acAbre{from{opacity:0;transform:translateY(-6px)}}
 /* Tareas como acordeones */
 .tareaAc{background:var(--tarjeta);border:1px solid var(--borde);border-radius:10px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}
@@ -125,7 +128,6 @@ section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
 <nav>
   <button data-tab="reunion" class="activo">📝 Reunión</button>
   <button data-tab="listado">📋 Listado</button>
-  <button data-tab="usuarios">👥 Usuarios</button>
   <button data-tab="tareas">✅ Tareas</button>
   <button data-tab="config">⚙️ Configuración</button>
 </nav>
@@ -172,15 +174,6 @@ section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
   </div>
 </section>
 
-<!-- ============ TAB USUARIOS ============ -->
-<section id="tab-usuarios" hidden>
-  <div id="zonaAdmin"></div>
-  <div class="tarjeta">
-    <h2>Usuarios participantes</h2>
-    <table><thead><tr><th>IdEA</th><th>Nombre</th><th>Cargo / Rol</th><th>Permisos</th><th></th></tr></thead><tbody id="tbodyUsuarios"></tbody></table>
-  </div>
-</section>
-
 <!-- ============ TAB TAREAS ============ -->
 <section id="tab-tareas" hidden>
   <div class="tarjeta">
@@ -200,7 +193,15 @@ section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
 
 <!-- ============ TAB CONFIGURACIÓN ============ -->
 <section id="tab-config" hidden>
-  <div id="zonaAdminConfig"></div>
+  <!-- Tarjeta de usuarios con las dos tarjetas dentro (solo tiene contenido para administradores) -->
+  <div class="tarjeta" id="tarjetaUsuarios">
+    <h2>Usuarios</h2>
+    <div id="zonaAdmin"></div>
+    <div class="tarjeta tarjetaInterior">
+      <h2>Usuarios participantes</h2>
+      <table><thead><tr><th>IdEA</th><th>Nombre</th><th>Cargo / Rol</th><th>Permisos</th><th></th></tr></thead><tbody id="tbodyUsuarios"></tbody></table>
+    </div>
+  </div>
 
   <div class="tarjeta">
     <h2>Días no lectivos</h2>
@@ -346,6 +347,8 @@ section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
   </label>
   <label style="margin-top:12px">Nueva contraseña (dejar vacío para no cambiarla)</label>
   <input type="password" id="euPass" autocomplete="new-password" style="width:100%">
+  <label style="margin-top:10px">Repite la nueva contraseña</label>
+  <input type="password" id="euPass2" autocomplete="new-password" style="width:100%">
   <div style="text-align:right;margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
     <button class="btn sec" onclick="document.getElementById('dlgUsuario').close()">Cancelar</button>
     <button class="btn" id="btnGuardarUsuario">Guardar</button>
@@ -360,6 +363,7 @@ section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
     <div><label>Columna del <b>Nombre</b></label><select id="mapNombre"></select></div>
     <div><label>Columna del <b>Cargo</b></label><select id="mapCargo"></select></div>
     <div><label>Contraseña inicial para todos</label><input type="password" id="passExcel" autocomplete="new-password" placeholder="mín. 6 caracteres"></div>
+    <div><label>Repite la contraseña</label><input type="password" id="passExcel2" autocomplete="new-password" placeholder="repite la contraseña"></div>
     <div style="flex:0 0 auto;display:flex;gap:8px;align-items:center">
       <label style="margin:0;cursor:pointer"><input type="checkbox" id="chkMarcarTodos" checked class="checkGrande" style="vertical-align:-4px"> Marcar todos</label>
     </div>
@@ -432,7 +436,7 @@ const hoyISO = () => {
 };
 
 /* ================= PESTAÑAS (transición de paso de hoja) ================= */
-const ordenPestanas = ['reunion','listado','usuarios','tareas','config'];
+const ordenPestanas = ['reunion','listado','tareas','config'];
 document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => {
   const actual = document.querySelector('nav button.activo');
   if (actual === b) return;
@@ -454,7 +458,8 @@ document.querySelectorAll('nav button').forEach(b => b.addEventListener('click',
 // y solo puede estar abierto uno en cada instante.
 function initAcordeones(){
   document.querySelectorAll('main section').forEach(sec => {
-    const tarjetas = [...sec.querySelectorAll('.tarjeta')];
+    // Solo tarjetas de primer nivel: las tarjetas anidadas (p. ej. dentro de «Usuarios») no son acordeones
+    const tarjetas = [...sec.querySelectorAll('.tarjeta')].filter(t => !t.parentElement.closest('.tarjeta'));
     if (tarjetas.length < 2) return;
     tarjetas.forEach(t => {
       if (t.dataset.acLista) return;
@@ -602,10 +607,6 @@ $('btnPrimerAdmin').addEventListener('click', async () => {
 });
 
 function renderZonasAdmin(){
-  // La pestaña Usuarios solo está disponible para administradores
-  const btnUsuarios = document.querySelector('nav button[data-tab="usuarios"]');
-  btnUsuarios.style.display = soyAdmin() ? '' : 'none';
-  if (!soyAdmin() && btnUsuarios.classList.contains('activo')) document.querySelector('nav button[data-tab="reunion"]').click();
   if (soyAdmin()){
     $('zonaAdmin').innerHTML = `
     <div class="tarjeta">
@@ -615,11 +616,13 @@ function renderZonasAdmin(){
         <div><label>Nombre</label><input type="text" id="nuNombre"></div>
         <div><label>Cargo</label><input type="text" id="nuCargo" placeholder="Director, Jefe de Estudios…"></div>
         <div><label>Contraseña inicial</label><input type="password" id="nuPass" autocomplete="new-password" placeholder="mín. 6 caracteres"></div>
+        <div><label>Repite la contraseña</label><input type="password" id="nuPass2" autocomplete="new-password" placeholder="repite la contraseña"></div>
         <div style="flex:0 0 auto;display:flex;gap:8px;align-items:center">
           <label style="margin:0;cursor:pointer"><input type="checkbox" id="nuAdmin"> Administrador</label>
           <button class="btn" id="btnAltaUsuario">Añadir</button>
         </div>
       </div>
+      <span id="avisoNuPass" class="muted"></span>
       <p class="muted">El usuario deberá cambiarla después pidiéndosela al administrador. Comunícasela por un medio seguro.</p>
       <hr style="border:none;border-top:1px solid var(--borde);margin:14px 0">
       <h3>Importar desde Excel (RelPerCen)</h3>
@@ -633,23 +636,31 @@ function renderZonasAdmin(){
       const id = $('nuId').value.trim(); if(!id) return alert('Indica el usuario IdEA');
       const pass = $('nuPass').value || id;   // por defecto, la contraseña inicial es el propio IdEA
       if (pass.length < 6) return alert('La contraseña inicial debe tener al menos 6 caracteres (el IdEA es demasiado corto: escribe una contraseña).');
+      if ($('nuPass2').value !== $('nuPass').value) return alert('Las dos contraseñas no coinciden.');
       try{
         const salt = nuevaSal();
         await colUsuarios.doc(id).set({nombre:$('nuNombre').value.trim(), cargo:$('nuCargo').value.trim(), admin:$('nuAdmin').checked,
           passSalt: salt, passHash: await hashContrasena(salt, pass)});
-        $('nuId').value = $('nuNombre').value = $('nuCargo').value = $('nuPass').value = ''; $('nuAdmin').checked = false;
+        $('nuId').value = $('nuNombre').value = $('nuCargo').value = $('nuPass').value = $('nuPass2').value = ''; $('nuAdmin').checked = false;
+        $('avisoNuPass').textContent = '';
       }catch(e){ alert('Error al guardar: '+e.message); }
     });
+    // Aviso en vivo de coincidencia de contraseñas en el alta
+    function compruebaNuPass(){
+      const a = $('nuPass').value, b = $('nuPass2').value;
+      $('avisoNuPass').textContent = !b ? '' : (a === b ? '✓ Las contraseñas coinciden.' : '✗ Las contraseñas no coinciden.');
+      $('avisoNuPass').style.color = !b ? '' : (a === b ? 'var(--ok)' : 'var(--acento)');
+    }
+    $('nuPass').addEventListener('input', compruebaNuPass);
+    $('nuPass2').addEventListener('input', compruebaNuPass);
     $('btnCargarDias').addEventListener('click', cargarDiasNoLectivos);
     $('btnImportarExcel').addEventListener('click', analizarExcel);
-    $('zonaAdminConfig').innerHTML = '';   // la gestión de usuarios vive ahora en la pestaña Usuarios
   } else {
     const hayAdmin = usuarios.some(u => u.admin);
     const aviso = hayAdmin || !usuariosCargados
-      ? '<div class="aviso">La gestión de usuarios (alta manual e importación desde Excel) y la configuración solo están disponibles para usuarios <b>administradores</b>.</div>'
+      ? '<div class="aviso">La gestión de usuarios (alta manual e importación desde Excel) solo está disponible para usuarios <b>administradores</b>.</div>'
       : '<div class="aviso">Actualmente <b>ningún usuario tiene permisos de administrador</b>, por lo que la gestión está bloqueada.</div>';
-    $('zonaAdmin').innerHTML = aviso;
-    $('zonaAdminConfig').innerHTML = hayAdmin || !usuariosCargados ? aviso : aviso +
+    $('zonaAdmin').innerHTML = hayAdmin || !usuariosCargados ? aviso : aviso +
       `<div class="aviso">Si eres quien administra la aplicación, puedes recuperar el control:</div>
        <button class="btn peligro" id="btnRecuperarAdmin">Concederme administración a mí (${esc(usuarioActual || 'sin usuario identificado')})</button>`;
     const btn = $('btnRecuperarAdmin');
@@ -718,6 +729,7 @@ function abrirEditarUsuario(id){
   $('euNombre').value = u.nombre || '';
   $('euCargo').value = u.cargo || '';
   $('euAdmin').checked = !!u.admin;
+  $('euPass').value = ''; $('euPass2').value = '';
   $('dlgUsuario').showModal();
 }
 $('btnGuardarUsuario').addEventListener('click', async () => {
@@ -725,7 +737,10 @@ $('btnGuardarUsuario').addEventListener('click', async () => {
   const idNuevo = $('euId').value.trim();
   if(!idNuevo) return alert('El usuario IdEA no puede quedar vacío');
   const nuevaPass = $('euPass').value;
-  if (nuevaPass && nuevaPass.length < 6) return alert('La contraseña debe tener al menos 6 caracteres');
+  if (nuevaPass){
+    if (nuevaPass.length < 6) return alert('La contraseña debe tener al menos 6 caracteres');
+    if ($('euPass2').value !== nuevaPass) return alert('Las dos contraseñas nuevas no coinciden.');
+  }
   const datos = {
     nombre: $('euNombre').value.trim(),
     cargo: $('euCargo').value.trim(),
@@ -744,7 +759,7 @@ $('btnGuardarUsuario').addEventListener('click', async () => {
       await colUsuarios.doc(idViejo).delete();
       if (usuarioActual === idViejo){ usuarioActual = idNuevo; localStorage.setItem('usuarioActual', idNuevo); }
     }
-    $('euPass').value = '';
+    $('euPass').value = ''; $('euPass2').value = '';
     $('dlgUsuario').close();
   }catch(e){ alert('Error al guardar: '+e.message); }
 });
@@ -1194,6 +1209,7 @@ $('btnConfirmarImport').addEventListener('click', async () => {
   const iCar = $('mapCargo').value === '' ? null : +$('mapCargo').value;
   const passComun = $('passExcel').value;
   if (passComun && passComun.length < 6) return alert('La contraseña inicial debe tener al menos 6 caracteres');
+  if (passComun && passComun !== $('passExcel2').value) return alert('Las dos contraseñas no coinciden.');
   const seleccionadas = filasExcel.filter(f => f.seleccionada && String(f.datos[iId]||'').trim() !== '');
   if (!seleccionadas.length) return alert('No hay filas seleccionadas con IdEA válido.');
   const conPintaDni = seleccionadas.filter(f => /^\d{7,8}[A-Za-z]?$/.test(String(f.datos[iId]).trim())).length;
@@ -1219,7 +1235,7 @@ $('btnConfirmarImport').addEventListener('click', async () => {
     }catch(e){ errores++; }
   }
   $('btnConfirmarImport').disabled = false;
-  $('passExcel').value = '';
+  $('passExcel').value = ''; $('passExcel2').value = '';
   $('dlgExcel').close();
   alert(`Importación terminada: ${importados} usuario(s) guardados${errores?`, ${errores} con error`:''}.`);
 });
