@@ -167,6 +167,29 @@ dialog h3{margin-top:0}
 .tareaAc .acCuerpo{display:none;padding:4px 14px 14px;border-top:1px solid var(--borde)}
 .tareaAc.abierta .acCuerpo{display:block;animation:acAbre .25s ease}
 .tareaAc.tareaCompleta .tTit{text-decoration:line-through;opacity:.55}
+/* ================= CALENDARIO ================= */
+.calCab{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.calCab .btn{min-width:42px}
+.calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.calNombres{text-align:center;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--texto-suave);padding:4px 0}
+.calDia{
+  min-height:64px;border:1px solid var(--borde);border-radius:10px;padding:6px;
+  background:var(--tarjeta);font-size:.85rem;
+}
+.calDia.vacio{background:transparent;border:none}
+.calDia.hoy{border-color:var(--primario);box-shadow:0 0 0 2px var(--foco)}
+.calDia.noLectivo{background:var(--primario-suave);opacity:.7}
+.calDia.conActa{cursor:pointer;border-color:var(--ok);background:rgba(22,163,74,.10)}
+.calDia.conActa:hover{border-color:var(--primario);transform:translateY(-1px);box-shadow:var(--sombra)}
+.calNum{font-weight:700;font-size:.8rem;color:var(--texto-suave)}
+.calDia.hoy .calNum{color:var(--primario)}
+.calActa{margin-top:4px;font-size:.72rem;font-weight:600;color:var(--texto);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+/* ================= PANTALLA DE IDENTIFICACIÓN ================= */
+#pantallaLogin{background:linear-gradient(160deg,var(--cab1),var(--cab2))}
+.panelLogin{
+  background:var(--tarjeta);color:var(--texto);border:1px solid var(--borde);
+  border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.35);padding:28px;width:100%;max-width:420px;
+}
 /* ================= TRANSICIÓN ENTRE PESTAÑAS: PASO DE HOJA ================= */
 section.hoja{animation:pasarHoja .5s ease both;transform-origin:left center}
 section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
@@ -193,6 +216,10 @@ section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
   dialog{padding:16px;width:95vw}
   .checkGrande{width:22px;height:22px}
   h2{font-size:1.05rem}
+  .calGrid{gap:3px}
+  .calDia{min-height:46px;padding:4px;font-size:.75rem}
+  .calActa{-webkit-line-clamp:1}
+  .panelLogin{padding:20px}
 }
 @media(min-width:641px) and (max-width:900px){
   main{padding:16px}
@@ -214,6 +241,7 @@ section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
 <nav>
   <button data-tab="reunion" class="activo">📝 Reunión</button>
   <button data-tab="listado">📋 Listado</button>
+  <button data-tab="calendario">📅 Calendario</button>
   <button data-tab="tareas">✅ Tareas</button>
   <button data-tab="config">⚙️ Configuración</button>
 </nav>
@@ -240,8 +268,9 @@ section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
         <button class="btn peligro" id="btnBorrarReunion">Eliminar</button>
       </div>
     </div>
-    <div class="fila" style="justify-content:space-between">
-      <span id="estadoGuardado"></span>
+    <div class="fila" style="justify-content:space-between;align-items:center">
+      <span id="estadoGuardado" style="flex:1"></span>
+      <button class="btn ok" id="btnGuardarActa" style="flex:0 0 auto">💾 Guardar acta</button>
       <span class="muted">Edición colaborativa en tiempo real</span>
     </div>
     <textarea id="reContenido" class="editor" placeholder="Redacta aquí el acta. Los cambios se sincronizan al instante con todos los dispositivos…"></textarea>
@@ -258,6 +287,21 @@ section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
     </div>
     <div id="resBusqueda"></div>
     <table><thead><tr><th>Fecha</th><th>Título</th><th>Última modificación</th><th></th></tr></thead><tbody id="tbodyReuniones"></tbody></table>
+  </div>
+</section>
+
+<!-- ============ TAB CALENDARIO ============ -->
+<section id="tab-calendario" hidden>
+  <div class="tarjeta">
+    <h2>Calendario de reuniones</h2>
+    <div class="calCab">
+      <button class="btn sec" id="btnCalAnt" title="Mes anterior">‹</button>
+      <b id="calTitulo" style="flex:1;text-align:center;text-transform:capitalize"></b>
+      <button class="btn sec" id="btnCalHoy">Hoy</button>
+      <button class="btn sec" id="btnCalSig" title="Mes siguiente">›</button>
+    </div>
+    <div id="calGrid" class="calGrid"></div>
+    <p class="muted" style="margin-top:10px">Pulsa sobre un día con 📝 para abrir su acta. Los días sombreados son no lectivos (fines de semana y festivos).</p>
   </div>
 </section>
 
@@ -348,8 +392,8 @@ section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
 </div>
 
 <!-- ============ PANTALLA DE IDENTIFICACIÓN ============ -->
-<div id="pantallaLogin" style="position:fixed;inset:0;background:linear-gradient(160deg,#1e3a5f,#2e5a8f);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px">
-  <div style="background:#fff;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.35);padding:28px;width:100%;max-width:420px">
+<div id="pantallaLogin" style="position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:16px">
+  <div class="panelLogin">
     <div style="text-align:center;margin-bottom:14px">
       <svg width="64" height="64" viewBox="0 0 64 64"><rect x="8" y="6" width="48" height="52" rx="6" fill="#1e3a5f"/><rect x="14" y="4" width="36" height="10" rx="3" fill="#c0392b"/><rect x="14" y="22" width="32" height="4" rx="2" fill="#fff"/><rect x="14" y="32" width="32" height="4" rx="2" fill="#fff" opacity=".6"/><rect x="14" y="42" width="20" height="4" rx="2" fill="#fff" opacity=".6"/><path d="M50 34 L60 44 L46 58 L38 58 L38 50 Z" fill="#f1c40f"/></svg>
       <h2 style="justify-content:center">Reuniones · Equipo Directivo</h2>
@@ -523,7 +567,7 @@ const hoyISO = () => {
 };
 
 /* ================= PESTAÑAS (transición de paso de hoja) ================= */
-const ordenPestanas = ['reunion','listado','tareas','config'];
+const ordenPestanas = ['reunion','listado','calendario','tareas','config'];
 document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => {
   const actual = document.querySelector('nav button.activo');
   if (actual === b) return;
@@ -538,6 +582,7 @@ document.querySelectorAll('nav button').forEach(b => b.addEventListener('click',
   if (!haciaAdelante) seccion.classList.add('atras');
   seccion.addEventListener('animationend', () => seccion.classList.remove('hoja','atras'), {once:true});
   if (b.dataset.tab === 'tareas') renderTareas();
+  if (b.dataset.tab === 'calendario') renderCalendario();
 }));
 
 /* ================= ACORDEONES ================= */
@@ -1018,6 +1063,13 @@ function esDiaLectivo(fechaISO){
 /* ================= REUNIONES (colaborativo) ================= */
 
 function renderSelectorReuniones(){
+  // Sin reunión activa se selecciona automáticamente la más reciente (así todos los
+  // dispositivos abren por defecto la misma acta y la edición colaborativa coincide)
+  if (!reunionActiva && reuniones.length){
+    reunionActiva = reuniones[0].id;
+    localStorage.setItem('reunionActiva_' + cursoActivo, reunionActiva);
+    suscribirContenido();
+  }
   const sel = $('selReunion');
   sel.innerHTML = '<option value="">— Selecciona reunión —</option>' +
     reuniones.map(r => `<option value="${r.id}" ${r.id===reunionActiva?'selected':''}>${fechaBonita(r.fecha)} · ${esc(r.titulo||'Sin título')}</option>`).join('');
@@ -1125,7 +1177,7 @@ $('reContenido').addEventListener('input', () => {
   clearTimeout(timerGuardado);
   timerGuardado = setTimeout(guardarYa, 500);
 });
-$('reTitulo').addEventListener('change', guardarYa);
+$('reTitulo').addEventListener('change', () => guardarYa(true));
 $('reFecha').addEventListener('change', () => {
   // El guardián de días no lectivos también aplica al cambiar la fecha de una reunión existente
   if ($('reFecha').value && !esDiaLectivo($('reFecha').value)){
@@ -1133,19 +1185,24 @@ $('reFecha').addEventListener('change', () => {
     $('reFecha').value = reuniones.find(r=>r.id===reunionActiva)?.fecha || hoyISO();
     return;
   }
-  guardarYa();
+  guardarYa(true);
 });
-function guardarYa(){
-  if(!reunionActiva || !escribiendo) return;
+function guardarYa(forzar){
+  if(!reunionActiva) return;
+  if(!forzar && !escribiendo) return;
   if (reuniones.find(r=>r.id===reunionActiva)?.cerrada || $('reContenido').readOnly){
     $('estadoGuardado').textContent = 'El acta está cerrada con candado: solo lectura.';
     return;
   }
-  if ($('reFecha').value && !esDiaLectivo($('reFecha').value)){
+  const r = reuniones.find(x=>x.id===reunionActiva);
+  const fechaCambiada = $('reFecha').value !== (r?.fecha || '');
+  // Los guardias de fecha solo aplican cuando el usuario CAMBIA la fecha:
+  // reuniones antiguas con fecha no lectiva (previas al guardia) deben poder editarse
+  if (fechaCambiada && $('reFecha').value && !esDiaLectivo($('reFecha').value)){
     $('estadoGuardado').textContent = 'No se puede guardar: la fecha cae en día no lectivo.';
     return;
   }
-  const fechaDuplicada = reuniones.find(r => r.id !== reunionActiva && r.fecha === $('reFecha').value);
+  const fechaDuplicada = fechaCambiada && reuniones.find(x => x.id !== reunionActiva && x.fecha === $('reFecha').value);
   if (fechaDuplicada){
     $('estadoGuardado').textContent = 'Ya existe una reunión el ' + fechaBonita(fechaDuplicada.fecha) + ': no puede haber dos el mismo día.';
     return;
@@ -1160,8 +1217,21 @@ function guardarYa(){
     escribiendo = false;
     $('estadoGuardado').textContent = 'Guardado ✓ ' + new Date().toLocaleTimeString('es');
     latido();
-  }).catch(e => $('estadoGuardado').textContent = 'Error al guardar: '+e.message);
+  }).catch(e => {
+    // IMPORTANTE: reactivar la recepción de cambios remotos aunque el guardado falle,
+    // o este dispositivo dejaría de sincronizar hasta recargar
+    escribiendo = false;
+    $('estadoGuardado').textContent = 'Error al guardar: ' + e.message + ' — resincronizando…';
+    // Reenganchar el listener: el snapshot entrante trae el contenido remoto y lo aplica
+    setTimeout(() => { if (!escribiendo) suscribirContenido(); }, 500);
+  });
 }
+
+/* Botón de guardado manual del acta */
+$('btnGuardarActa').addEventListener('click', () => {
+  if(!reunionActiva) return alert('Selecciona o crea una reunión primero');
+  guardarYa(true);
+});
 
 /* Asistentes */
 $('btnAsistentes').addEventListener('click', () => {
@@ -1256,6 +1326,40 @@ $('btnBuscar').addEventListener('click', () => {
     </div>`).join('') : '<p class="muted">Sin coincidencias en el contenido de las reuniones.</p>';
   $('dlgBusqueda').showModal();
 });
+
+/* ================= CALENDARIO DE REUNIONES ================= */
+let calBase = new Date();   // mes mostrado (el actual al entrar)
+function renderCalendario(){
+  const y = calBase.getFullYear(), m = calBase.getMonth();
+  $('calTitulo').textContent = calBase.toLocaleDateString('es', {month:'long', year:'numeric'});
+  const offset = (new Date(y, m, 1).getDay() + 6) % 7;              // lunes = primera columna
+  const diasMes = new Date(y, m + 1, 0).getDate();
+  let html = ['lun','mar','mié','jue','vie','sáb','dom']
+    .map(d => `<div class="calNombres">${d}</div>`).join('');
+  for (let i = 0; i < offset; i++) html += '<div class="calDia vacio"></div>';
+  for (let d = 1; d <= diasMes; d++){
+    const iso = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const r = reuniones.find(x => x.fecha === iso);
+    const clases = ['calDia'];
+    if (iso === hoyISO()) clases.push('hoy');
+    if (!esDiaLectivo(iso)) clases.push('noLectivo');
+    if (r) clases.push('conActa');
+    html += `<div class="${clases.join(' ')}" ${r ? `data-cal="${r.id}" role="button" tabindex="0" title="${esc(r.titulo||'Sin título')} — abrir acta"` : ''}>
+      <div class="calNum">${d}</div>
+      ${r ? `<div class="calActa">${r.cerrada ? '🔒' : '📝'} ${esc((r.titulo||'Sin título').slice(0,26))}</div>` : ''}
+    </div>`;
+  }
+  $('calGrid').innerHTML = html;
+  $('calGrid').querySelectorAll('[data-cal]').forEach(c => c.addEventListener('click', () => {
+    reunionActiva = c.dataset.cal;
+    localStorage.setItem('reunionActiva_' + cursoActivo, reunionActiva);
+    document.querySelector('nav button[data-tab="reunion"]').click();
+    renderSelectorReuniones(); suscribirContenido();
+  }));
+}
+$('btnCalAnt').addEventListener('click', () => { calBase = new Date(calBase.getFullYear(), calBase.getMonth()-1, 1); renderCalendario(); });
+$('btnCalSig').addEventListener('click', () => { calBase = new Date(calBase.getFullYear(), calBase.getMonth()+1, 1); renderCalendario(); });
+$('btnCalHoy').addEventListener('click', () => { calBase = new Date(); renderCalendario(); });
 
 /* ================= IMPORTAR USUARIOS DESDE EXCEL ================= */
 let filasExcel = [];   // [{datos:[...], seleccionada}]
