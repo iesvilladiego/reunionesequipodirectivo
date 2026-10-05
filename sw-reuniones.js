@@ -4,7 +4,7 @@
    de esta aplicación dentro de iesvilladiego.github.io, de modo
    que NO interfiere con las demás apps alojadas en el dominio.
    ============================================================ */
-const CACHE = 'reuniones-v5';
+const CACHE = 'reuniones-v6';
 const ARCHIVOS = [
   './',
   './index.html',
