@@ -68,6 +68,27 @@ textarea.editor{width:100%;min-height:420px;font-family:'Segoe UI',sans-serif;fo
 dialog{border:none;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.3);padding:20px;min-width:320px;max-width:520px;width:92vw;margin:auto;position:fixed;inset:0}
 dialog::backdrop{background:rgba(0,0,0,.45)}
 dialog h3{margin-top:0}
+/* ---- Acordeones (tarjetas plegables; solo una abierta por ventana) ---- */
+.tarjeta.ac > h2{cursor:pointer;user-select:none}
+.tarjeta.ac > h2::after{content:'▸';margin-left:auto;font-size:1.05rem;transition:transform .25s;color:var(--gris)}
+.tarjeta.ac.abierta > h2::after{transform:rotate(90deg);color:var(--primario)}
+.tarjeta.ac > *:not(h2){display:none}
+.tarjeta.ac.abierta > *:not(h2){display:block;animation:acAbre .25s ease}
+@keyframes acAbre{from{opacity:0;transform:translateY(-6px)}}
+/* Tareas como acordeones */
+.tareaAc{background:var(--tarjeta);border:1px solid var(--borde);border-radius:10px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}
+.tareaAc .acCab{display:flex;gap:10px;align-items:center;padding:10px 12px;cursor:pointer;flex-wrap:wrap}
+.tareaAc .acCab .tTit{flex:1;min-width:140px;font-weight:600}
+.tareaAc .acCab .flecha{color:var(--gris);transition:transform .25s}
+.tareaAc.abierta .flecha{transform:rotate(90deg)}
+.tareaAc .acCuerpo{display:none;padding:4px 12px 12px;border-top:1px solid var(--borde)}
+.tareaAc.abierta .acCuerpo{display:block;animation:acAbre .25s ease}
+.tareaAc.tareaCompleta .tTit{text-decoration:line-through;opacity:.55}
+/* ---- Transición entre pestañas: paso de hoja ---- */
+section.hoja{animation:pasarHoja .5s ease both;transform-origin:left center}
+section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
+@keyframes pasarHoja{0%{opacity:0;transform:perspective(1500px) rotateY(-14deg) translateX(6%)}100%{opacity:1;transform:none}}
+@keyframes pasarHojaAtras{0%{opacity:0;transform:perspective(1500px) rotateY(14deg) translateX(-6%)}100%{opacity:1;transform:none}}
 @media(max-width:640px){
   main{padding:10px}
   .tarjeta{padding:12px;overflow-x:auto}   /* las tablas deslizan en lugar de romper el diseño */
@@ -173,7 +194,7 @@ dialog h3{margin-top:0}
       </span>
     </h2>
     <div id="misTareas"></div>
-    <table style="margin-top:10px"><thead><tr><th style="width:34px">✔</th><th>Tarea</th><th>Responsable</th><th>Límite</th><th></th></tr></thead><tbody id="tbodyTareas"></tbody></table>
+    <div id="listaTareas" style="margin-top:10px"></div>
   </div>
 </section>
 
@@ -215,13 +236,6 @@ dialog h3{margin-top:0}
   </div>
 
   <div class="tarjeta">
-    <h2>Instalación como PWA</h2>
-    <p class="muted">Para instalar la aplicación en móvil o escritorio, usa «Añadir a pantalla de inicio» / «Instalar» desde el menú del navegador.</p>
-    <p class="muted" style="margin-top:6px">El <b>service worker</b> (<code>sw-reuniones.js</code>) está desplegado junto a este index.html, registrado con ámbito relativo a la carpeta de esta aplicación, de modo que <b>no interfiere</b> con las demás apps alojadas en <code>iesvilladiego.github.io</code>.</p>
-    <span id="estadoSW" class="muted" style="display:block;margin-top:8px"></span>
-  </div>
-
-  <div class="tarjeta">
     <h2>Mi cuenta · cambiar contraseña</h2>
     <div class="fila">
       <div><label>Contraseña actual</label><input type="password" id="mcActual" autocomplete="current-password"></div>
@@ -229,14 +243,12 @@ dialog h3{margin-top:0}
       <div><label>Repite la nueva</label><input type="password" id="mcRepite" autocomplete="new-password"></div>
       <div style="flex:0 0 auto"><button class="btn" id="btnCambiarPass">Cambiar</button></div>
     </div>
+    <span id="avisoPass" class="muted"></span>
   </div>
 
   <div class="tarjeta">
-    <h2>Curso escolar</h2>
-    <div class="fila">
-      <div><label>Curso (se usa en cabeceras de PDF)</label><input type="text" id="cfgCurso" placeholder="Ej.: 2026/2027"></div>
-      <div style="flex:0 0 auto"><button class="btn" id="btnGuardarCurso">Guardar</button></div>
-    </div>
+    <h2>Cursos escolares</h2>
+    <div id="zonaCursos"></div>
   </div>
 </section>
 
@@ -386,9 +398,10 @@ const db = firebase.firestore();
 firebase.auth().signInAnonymously().catch(e => console.warn("Auth anónima:", e.message));
 
 const colUsuarios = db.collection('usuarios');
-const colReuniones = db.collection('reuniones');
-const colTareas = db.collection('tareas');
-const docConfig = db.collection('configuracion');
+const colCursos = db.collection('cursos');
+const docGeneral = db.collection('configuracion').doc('general');
+// Las reuniones y las tareas viven dentro de subcolecciones de cada curso (datos aislados)
+let colReuniones = null, colTareas = null;
 
 /* ================= ESTADO ================= */
 let usuarioActual = '';                      // siempre hay que identificarse en el modal de acceso
@@ -396,23 +409,73 @@ let ultimoUsuario = localStorage.getItem('usuarioActual') || '';   // solo para 
 let usuarios = [];           // [{id, nombre, cargo, admin}]
 let usuariosCargados = false; // evita decidir sobre permisos antes de leer Firestore
 let reuniones = [];          // ordenadas por fecha desc
-let reunionActiva = localStorage.getItem('reunionActiva') || '';
+let reunionActiva = '';
 let tareas = [];
-let diasNoLectivos = {};     // fecha -> {categorias, detalle}
-let cursoEscolar = '';
+let diasNoLectivos = {};     // fecha -> {categorias, detalle} (del curso activo)
+let cursoEscolar = '';       // etiqueta del curso activo (p. ej. "2026/2027")
+let cursoActivo = '';        // id del curso activo (p. ej. "2026-2027")
+let cursos = [];             // [{id, etiqueta, inicio, fin}]
 let escribiendo = false, timerGuardado = null;
 
 const $ = id => document.getElementById(id);
 const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const hoyISO = () => new Date().toISOString().slice(0,10);
+// Fecha de hoy en hora local (toISOString daría el día UTC, desfasado en España)
+const hoyISO = () => {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+};
 
-/* ================= PESTAÑAS ================= */
+/* ================= PESTAÑAS (transición de paso de hoja) ================= */
+const ordenPestanas = ['reunion','listado','usuarios','tareas','config'];
 document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => {
+  const actual = document.querySelector('nav button.activo');
+  if (actual === b) return;
+  const haciaAdelante = ordenPestanas.indexOf(b.dataset.tab) > ordenPestanas.indexOf(actual.dataset.tab);
   document.querySelectorAll('nav button').forEach(x => x.classList.remove('activo'));
   b.classList.add('activo');
-  ['reunion','listado','usuarios','tareas','config'].forEach(t => $('tab-'+t).hidden = (t !== b.dataset.tab));
+  ordenPestanas.forEach(t => $('tab-'+t).hidden = (t !== b.dataset.tab));
+  const seccion = $('tab-'+b.dataset.tab);
+  seccion.classList.remove('hoja','atras');
+  void seccion.offsetWidth;   // reinicia la animación si se vuelve a la misma pestaña
+  seccion.classList.add('hoja');
+  if (!haciaAdelante) seccion.classList.add('atras');
+  seccion.addEventListener('animationend', () => seccion.classList.remove('hoja','atras'), {once:true});
   if (b.dataset.tab === 'tareas') renderTareas();
 }));
+
+/* ================= ACORDEONES ================= */
+// En cada ventana con varias tarjetas, todas son acordeones inicialmente replegados
+// y solo puede estar abierto uno en cada instante.
+function initAcordeones(){
+  document.querySelectorAll('main section').forEach(sec => {
+    const tarjetas = [...sec.querySelectorAll('.tarjeta')];
+    if (tarjetas.length < 2) return;
+    tarjetas.forEach(t => {
+      if (t.dataset.acLista) return;
+      t.dataset.acLista = '1';
+      t.classList.add('ac');
+      const h2 = t.querySelector('h2');
+      if (h2) h2.addEventListener('click', () => {
+        const estabaAbierta = t.classList.contains('abierta');
+        tarjetas.forEach(x => x.classList.remove('abierta'));
+        if (!estabaAbierta) t.classList.add('abierta');
+      });
+    });
+    // Si una tarjeta ya estaba abierta (p. ej. tras un re-render), se conserva abierta
+    const abierta = sec.querySelector('.tarjeta.ac.abierta');
+    tarjetas.forEach(t => t.classList.remove('abierta'));
+    if (abierta && tarjetas.includes(abierta)) abierta.classList.add('abierta');
+  });
+}
+function unaSolaAbierta(contenedor){
+  contenedor.querySelectorAll('.tareaAc .acCab').forEach(cab => cab.addEventListener('click', e => {
+    if (e.target.closest('input,button')) return;   // el checkbox y los botones no pliegan
+    const item = cab.closest('.tareaAc');
+    const estaba = item.classList.contains('abierta');
+    contenedor.querySelectorAll('.tareaAc').forEach(x => x.classList.remove('abierta'));
+    if (!estaba) item.classList.add('abierta');
+  }));
+}
 
 /* ================= SESIÓN / USUARIOS ================= */
 colUsuarios.onSnapshot(snap => {
@@ -530,7 +593,13 @@ $('btnPrimerAdmin').addEventListener('click', async () => {
 });
 
 function renderZonasAdmin(){
-  $('zonaAdmin').innerHTML = $('zonaAdminConfig').innerHTML = soyAdmin() ? `
+  // La pestaña Usuarios no se muestra a los administradores
+  const btnUsuarios = document.querySelector('nav button[data-tab="usuarios"]');
+  btnUsuarios.style.display = soyAdmin() ? 'none' : '';
+  if (soyAdmin() && btnUsuarios.classList.contains('activo')) document.querySelector('nav button[data-tab="reunion"]').click();
+  if (soyAdmin()){
+    $('zonaAdmin').innerHTML = '';
+    $('zonaAdminConfig').innerHTML = `
     <div class="tarjeta">
       <h2>Alta de usuario (solo administrador)</h2>
       <div class="fila">
@@ -551,8 +620,7 @@ function renderZonasAdmin(){
         <div style="flex:0 0 auto"><button class="btn sec" id="btnImportarExcel">Analizar archivo</button></div>
       </div>
       <p class="muted">Se abrirá un modal con las filas del archivo: marca las que quieras importar, indica qué columna corresponde al IdEA, al nombre y al cargo, y confirma.</p>
-    </div>` : '';
-  if (soyAdmin()){
+    </div>`;
     $('btnAltaUsuario').addEventListener('click', async () => {
       const id = $('nuId').value.trim(); if(!id) return alert('Indica el usuario IdEA');
       const pass = $('nuPass').value || id;   // por defecto, la contraseña inicial es el propio IdEA
@@ -565,27 +633,56 @@ function renderZonasAdmin(){
       }catch(e){ alert('Error al guardar: '+e.message); }
     });
     $('btnCargarDias').addEventListener('click', cargarDiasNoLectivos);
-    $('btnGuardarCurso').addEventListener('click', async () => {
-      cursoEscolar = $('cfgCurso').value.trim();
-      await docConfig.doc('general').set({curso: cursoEscolar}, {merge:true});
-      alert('Curso guardado.');
-    });
     $('btnImportarExcel').addEventListener('click', analizarExcel);
   } else {
     const hayAdmin = usuarios.some(u => u.admin);
     const aviso = hayAdmin || !usuariosCargados
-      ? '<div class="aviso">La gestión de usuarios (alta manual e importación desde Excel) y la configuración solo están disponibles para usuarios <b>administradores</b>. Identifícate con un usuario admin en el desplegable de la cabecera.</div>'
-      : `<div class="aviso">Actualmente <b>ningún usuario tiene permisos de administrador</b>, por lo que la gestión está bloqueada. Si eres quien administra la aplicación, puedes recuperar el control:</div>
-         <button class="btn peligro" id="btnRecuperarAdmin">Concederme administración a mí (${esc(usuarioActual || 'sin usuario identificado')})</button>`;
+      ? '<div class="aviso">La gestión de usuarios (alta manual e importación desde Excel) y la configuración solo están disponibles para usuarios <b>administradores</b>.</div>'
+      : '<div class="aviso">Actualmente <b>ningún usuario tiene permisos de administrador</b>, por lo que la gestión está bloqueada.</div>';
     $('zonaAdmin').innerHTML = aviso;
-    $('zonaAdminConfig').innerHTML = aviso;
+    $('zonaAdminConfig').innerHTML = hayAdmin || !usuariosCargados ? aviso : aviso +
+      `<div class="aviso">Si eres quien administra la aplicación, puedes recuperar el control:</div>
+       <button class="btn peligro" id="btnRecuperarAdmin">Concederme administración a mí (${esc(usuarioActual || 'sin usuario identificado')})</button>`;
     const btn = $('btnRecuperarAdmin');
     if (btn) btn.addEventListener('click', async () => {
-      if(!usuarioActual) return alert('Identifícate primero en el desplegable de la cabecera.');
+      if(!usuarioActual) return alert('Identifícate primero.');
       if(!confirm(`¿Confirmas conceder permisos de administrador a "${usuarioActual}"?`)) return;
       await colUsuarios.doc(usuarioActual).set({admin:true}, {merge:true});
     });
   }
+  renderZonaCursos();
+  initAcordeones();
+}
+
+/* ---- Gestión de cursos escolares (solo administrador) ---- */
+function renderZonaCursos(){
+  const zona = $('zonaCursos'); if(!zona) return;
+  if (!soyAdmin()){
+    zona.innerHTML = '<p class="muted">La creación y el cambio de curso están reservados a los usuarios administradores.</p>';
+    return;
+  }
+  const opciones = cursos.map(c => `<option value="${esc(c.id)}" ${c.id===cursoActivo?'selected':''}>${esc(c.etiqueta||c.id)}</option>`).join('');
+  zona.innerHTML = `
+    <div class="fila">
+      <div><label>Curso activo</label><select id="selCursoActivo"><option value="">— ${cursoActivo?'':'ninguno'} —</option>${opciones}</select></div>
+      <div><label>Crear curso (año de inicio)</label><input type="number" id="nuevoCursoAnyo" min="2000" max="2100" placeholder="p.ej. 2027"></div>
+      <div style="flex:0 0 auto"><button class="btn" id="btnCrearCurso">Crear curso</button></div>
+    </div>
+    <p class="muted">Cada curso (del 1 de septiembre al 31 de agosto) aísla sus reuniones, tareas y días no lectivos. Al iniciar la app se sitúa automáticamente el curso de la fecha actual.</p>`;
+  $('selCursoActivo').value = cursoActivo;
+  $('selCursoActivo').addEventListener('change', e => { if (e.target.value) activarCurso(e.target.value); });
+  $('btnCrearCurso').addEventListener('click', async () => {
+    const y = parseInt($('nuevoCursoAnyo').value, 10);
+    if (!y || y < 2000 || y > 2100) return alert('Escribe un año de inicio válido (p. ej. 2027).');
+    const id = `${y}-${y+1}`;
+    try{
+      const doc = await colCursos.doc(id).get();
+      if (doc.exists) return alert('Ese curso ya existe.');
+      await colCursos.doc(id).set({etiqueta:`${y}/${y+1}`, inicio:`${y}-09-01`, fin:`${y+1}-08-31`});
+      $('nuevoCursoAnyo').value = '';
+      alert(`Curso ${y}/${y+1} creado. Usa «Curso activo» para cambiar a él.`);
+    }catch(e){ alert('Error al crear el curso: '+e.message); }
+  });
 }
 
 function renderUsuarios(){
@@ -661,16 +758,111 @@ $('btnCambiarPass').addEventListener('click', async () => {
   }catch(e){ alert('Error al cambiar la contraseña: '+e.message); }
 });
 
-/* ================= DÍAS NO LECTIVOS ================= */
-docConfig.doc('general').onSnapshot(snap => {
-  if (snap.exists){
-    const d = snap.data();
-    diasNoLectivos = d.diasNoLectivos || {};
-    cursoEscolar = d.curso || '';
-    $('cfgCurso').value = cursoEscolar;
-    pintaInfoDias();
+// Aviso en vivo mientras se escriben las dos copias de la nueva contraseña
+function compruebaRepeticionPass(){
+  const nueva = $('mcNueva').value, repite = $('mcRepite').value;
+  $('avisoPass').textContent = !repite ? '' : (nueva === repite ? '✓ Las contraseñas coinciden.' : '✗ Las contraseñas no coinciden.');
+  $('avisoPass').style.color = !repite ? '' : (nueva === repite ? 'var(--ok)' : 'var(--acento)');
+}
+$('mcNueva').addEventListener('input', compruebaRepeticionPass);
+$('mcRepite').addEventListener('input', compruebaRepeticionPass);
+
+/* ================= CURSOS ESCOLARES ================= */
+// Cada curso (1 sep – 31 ago) aísla reuniones, tareas y días no lectivos en subcolecciones
+colCursos.onSnapshot(snap => {
+  cursos = snap.docs.map(d => ({id:d.id, ...d.data()})).sort((a,b)=>(b.id||'').localeCompare(a.id||''));
+  renderZonaCursos();
+}, err => console.error('Error leyendo cursos:', err));
+
+function cursoDeFecha(iso){
+  const d = new Date(iso+'T12:00:00');
+  const y = d.getMonth() >= 8 ? d.getFullYear() : d.getFullYear()-1;   // el curso empieza el 1 de septiembre
+  return {id:`${y}-${y+1}`, etiqueta:`${y}/${y+1}`, inicio:`${y}-09-01`, fin:`${y+1}-08-31`};
+}
+
+// Activa un curso: lo crea si falta, migra los datos antiguos una sola vez y resuscribe
+async function activarCurso(id, autoDetectado){
+  const ref = colCursos.doc(id);
+  try{
+    const doc = await ref.get();
+    if (!doc.exists){
+      const c = cursoDeFecha(id.split('-')[0] + '-09-01');
+      await ref.set({etiqueta:c.etiqueta, inicio:c.inicio, fin:c.fin});
+    }
+  }catch(e){ alert('No se pudo acceder al curso: '+e.message); return; }
+  await migrarDatosLegacy(id);
+  cursoActivo = id;
+  localStorage.setItem('cursoActivo', id);
+  colReuniones = ref.collection('reuniones');
+  colTareas = ref.collection('tareas');
+  suscribirCurso();
+  renderZonaCursos();
+}
+
+// Copia una sola vez las reuniones/tareas antiguas y los días no lectivos al primer curso activo
+async function migrarDatosLegacy(idCurso){
+  const gen = await docGeneral.get();
+  const gd = gen.exists ? gen.data() : {};
+  if (gd.migracionLegacyHecha) return;   // la migración de datos antiguos se hace una sola vez, sea cual sea el curso
+  const ref = colCursos.doc(idCurso);
+  try{
+    const [viejasReuniones, viejasTareas] = await Promise.all([
+      db.collection('reuniones').get(), db.collection('tareas').get()
+    ]);
+    const lote = db.batch();
+    viejasReuniones.forEach(d => lote.set(ref.collection('reuniones').doc(d.id), d.data()));
+    viejasTareas.forEach(d => lote.set(ref.collection('tareas').doc(d.id), d.data()));
+    const datosCurso = {};
+    if (gd.diasNoLectivos) datosCurso.diasNoLectivos = gd.diasNoLectivos;
+    if (Object.keys(datosCurso).length) lote.set(ref, datosCurso, {merge:true});
+    await lote.commit();
+  }catch(e){ console.error('Migración de datos antiguos:', e); }
+  await docGeneral.set({migracionLegacyHecha: true}, {merge:true});
+}
+
+// Al iniciar la app se posiciona automáticamente el curso de la fecha del sistema;
+// si el usuario cambió de curso manualmente y ese curso sigue vigente, se respeta.
+async function iniciarCurso(){
+  const detectado = cursoDeFecha(hoyISO());
+  let id = detectado.id;
+  const guardado = localStorage.getItem('cursoActivo');
+  if (guardado && guardado !== id){
+    try{
+      const doc = await colCursos.doc(guardado).get();
+      const d = doc.exists ? doc.data() : {};
+      if (doc.exists && (!d.inicio || hoyISO() >= d.inicio) && (!d.fin || hoyISO() <= d.fin)) id = guardado;
+    }catch(e){}
   }
-});
+  await activarCurso(id);
+}
+
+let unsubReuniones = null, unsubTareas = null, unsubCursoDoc = null;
+function suscribirCurso(){
+  if (unsubReuniones) unsubReuniones();
+  if (unsubTareas) unsubTareas();
+  if (unsubCursoDoc) unsubCursoDoc();
+  reunionActiva = localStorage.getItem('reunionActiva_' + cursoActivo) || '';
+  suscribirContenido();
+  unsubReuniones = colReuniones.onSnapshot(snap => {
+    reuniones = snap.docs.map(d => ({id:d.id, ...d.data()})).sort((a,b)=> (b.fecha||'').localeCompare(a.fecha||''));
+    renderListaReuniones();
+    renderSelectorReuniones();
+  }, err => {
+    $('estadoGuardado').innerHTML = `<span style="color:var(--acento)">Error Firestore: ${esc(err.message)}</span>`;
+  });
+  unsubTareas = colTareas.onSnapshot(snap => {
+    tareas = snap.docs.map(d => ({id:d.id, ...d.data()})).sort((a,b)=> (a.completada?1:0)-(b.completada?1:0) || (a.limite||'9999').localeCompare(b.limite||'9999'));
+    renderTareas();
+  });
+  unsubCursoDoc = colCursos.doc(cursoActivo).onSnapshot(snap => {
+    const d = snap.exists ? snap.data() : {};
+    diasNoLectivos = d.diasNoLectivos || {};
+    cursoEscolar = d.etiqueta || '';
+    pintaInfoDias();
+  });
+}
+
+/* ================= DÍAS NO LECTIVOS ================= */
 
 function pintaInfoDias(){
   const n = Object.keys(diasNoLectivos).length;
@@ -686,8 +878,7 @@ function cargarDiasNoLectivos(){
       const json = JSON.parse(lector.result);
       const mapa = {};
       (json.dias||[]).forEach(d => mapa[d.fecha] = {categorias:d.categorias||[], detalle:d.detalle||''});
-      cursoEscolar = json.curso || cursoEscolar;
-      await docConfig.doc('general').set({diasNoLectivos: mapa, curso: cursoEscolar}, {merge:true});
+      await colCursos.doc(cursoActivo).set({diasNoLectivos: mapa}, {merge:true});
       alert(`Importados ${Object.keys(mapa).length} días del curso ${cursoEscolar}.`);
     }catch(e){ alert('Archivo no válido: '+e.message); }
   };
@@ -705,13 +896,6 @@ function esDiaLectivo(fechaISO){
 }
 
 /* ================= REUNIONES (colaborativo) ================= */
-colReuniones.onSnapshot(snap => {
-  reuniones = snap.docs.map(d => ({id:d.id, ...d.data()})).sort((a,b)=> (b.fecha||'').localeCompare(a.fecha||''));
-  renderListaReuniones();
-  renderSelectorReuniones();
-}, err => {
-  $('estadoGuardado').innerHTML = `<span style="color:var(--acento)">Error Firestore: ${esc(err.message)}</span>`;
-});
 
 function renderSelectorReuniones(){
   const sel = $('selReunion');
@@ -722,16 +906,18 @@ function renderSelectorReuniones(){
 $('selReunion').addEventListener('change', e => {
   guardarYa();
   reunionActiva = e.target.value;
-  localStorage.setItem('reunionActiva', reunionActiva);
+  localStorage.setItem('reunionActiva_' + cursoActivo, reunionActiva);
   suscribirContenido();
 });
 
 $('btnNuevaReunion').addEventListener('click', async () => {
+  if (!colReuniones) return alert('Los datos del curso aún se están cargando. Espera unos segundos e inténtalo de nuevo.');
   const fecha = $('reFecha').value || hoyISO();
+  if (!esDiaLectivo(fecha)) return alert('No se puede crear una reunión en un día no lectivo (fin de semana o festivo).');
   const titulo = $('reTitulo').value.trim() || ('Reunión del ' + fechaBonita(fecha));
   try{
     const ref = await colReuniones.add({fecha, titulo, contenido:'', creadaPor:usuarioActual, creadaEn:firebase.firestore.FieldValue.serverTimestamp(), actualizadoPor:usuarioActual, actualizadoEn:Date.now()});
-    reunionActiva = ref.id; localStorage.setItem('reunionActiva', reunionActiva);
+    reunionActiva = ref.id; localStorage.setItem('reunionActiva_' + cursoActivo, reunionActiva);
     $('reTitulo').value = '';
     renderSelectorReuniones(); suscribirContenido();
   }catch(e){ alert('Error: '+e.message); }
@@ -741,7 +927,7 @@ $('btnBorrarReunion').addEventListener('click', async () => {
   if(!reunionActiva) return;
   if(confirm('¿Eliminar esta reunión y todo su contenido?')){
     await colReuniones.doc(reunionActiva).delete();
-    reunionActiva = ''; localStorage.removeItem('reunionActiva');
+    reunionActiva = ''; localStorage.removeItem('reunionActiva_' + cursoActivo);
     renderSelectorReuniones(); suscribirContenido();
   }
 });
@@ -789,9 +975,21 @@ $('reContenido').addEventListener('input', () => {
   timerGuardado = setTimeout(guardarYa, 500);
 });
 $('reTitulo').addEventListener('change', guardarYa);
-$('reFecha').addEventListener('change', guardarYa);
+$('reFecha').addEventListener('change', () => {
+  // El guardián de días no lectivos también aplica al cambiar la fecha de una reunión existente
+  if ($('reFecha').value && !esDiaLectivo($('reFecha').value)){
+    alert('No se puede fijar una reunión en un día no lectivo (fin de semana o festivo).');
+    $('reFecha').value = reuniones.find(r=>r.id===reunionActiva)?.fecha || hoyISO();
+    return;
+  }
+  guardarYa();
+});
 function guardarYa(){
   if(!reunionActiva || !escribiendo) return;
+  if ($('reFecha').value && !esDiaLectivo($('reFecha').value)){
+    $('estadoGuardado').textContent = 'No se puede guardar: la fecha cae en día no lectivo.';
+    return;
+  }
   clearTimeout(timerGuardado);
   colReuniones.doc(reunionActiva).set({
     contenido: $('reContenido').value,
@@ -833,6 +1031,7 @@ $('btnTareaDesdeReunion').addEventListener('click', () => {
   $('dlgNuevaTarea').showModal();
 });
 $('btnCrearTarea').addEventListener('click', async () => {
+  if (!colTareas) return alert('Los datos del curso aún se están cargando. Espera unos segundos e inténtalo de nuevo.');
   const titulo = $('ntTitulo').value.trim();
   if(!titulo) return alert('Escribe la descripción de la tarea');
   try{
@@ -864,7 +1063,7 @@ function renderListaReuniones(){
   }).join('') || '<tr><td colspan="4" class="muted">Aún no hay reuniones.</td></tr>';
   document.querySelectorAll('[data-abrir]').forEach(a => a.addEventListener('click', e => {
     e.preventDefault();
-    reunionActiva = a.dataset.abrir; localStorage.setItem('reunionActiva', reunionActiva);
+    reunionActiva = a.dataset.abrir; localStorage.setItem('reunionActiva_' + cursoActivo, reunionActiva);
     document.querySelector('nav button[data-tab="reunion"]').click();
     renderSelectorReuniones(); suscribirContenido();
   }));
@@ -1008,10 +1207,6 @@ $('btnConfirmarImport').addEventListener('click', async () => {
 });
 
 /* ================= TAREAS ================= */
-colTareas.onSnapshot(snap => {
-  tareas = snap.docs.map(d => ({id:d.id, ...d.data()})).sort((a,b)=> (a.completada?1:0)-(b.completada?1:0) || (a.limite||'9999').localeCompare(b.limite||'9999'));
-  renderTareas();
-});
 
 function renderSelectorTareas(){
   const opts = '<option value="">— Sin asignar —</option>' + usuarios.map(u=>`<option value="${esc(u.id)}">${esc(u.nombre||u.id)}</option>`).join('');
@@ -1034,9 +1229,9 @@ function renderTareas(){
   const tituloSeccion = {pendientes:'Tareas pendientes', mias:'Mis tareas', finalizadas:'Tareas finalizadas', todas:'Todas las tareas'}[filtroTareas];
   $('misTareas').innerHTML = usuarioActual ? `
     <div class="aviso">${tituloSeccion} · Tienes <b>${miasPend.length}</b> pendiente(s) asignada(s) a ti${miasPend.length? ' (se muestran primero)':''}.</div>` :
-    '<div class="aviso">Identifícate arriba para ver tus tareas.</div>';
+    '<div class="aviso">Identifícate para ver tus tareas.</div>';
 
-  $('tbodyTareas').innerHTML = visibles.map(t => {
+  $('listaTareas').innerHTML = visibles.map(t => {
     const resp = usuarios.find(u=>u.id===t.responsable);
     // Degradado verde→rojo según días que queden (verde pleno a 14 días o más, rojo el día de caducidad)
     let estiloFila = '', estiloFecha = '', claseParpadeo = '';
@@ -1055,14 +1250,22 @@ function renderTareas(){
         else if (dias === 3) claseParpadeo = 'parpadeo1';
       }
     }
-    return `<tr class="${t.completada?'tareaCompleta':''}" style="${estiloFila}">
-      <td><input type="checkbox" class="checkGrande" data-check="${t.id}" ${t.completada?'checked':''} title="Marcar como completada"></td>
-      <td>${esc(t.titulo)}${t.descripcion?`<div class="muted">${esc(t.descripcion)}</div>`:''}</td>
-      <td>${resp?esc(resp.nombre||resp.id):'—'}</td>
-      <td class="${claseParpadeo}" style="${estiloFecha}">${t.limite?fechaBonita(t.limite):''}${t.limite && !t.completada && t.limite < hoyISO() ? ' ⚠ vencida':''}</td>
-      <td class="acciones"><button class="btn sec" data-editar="${t.id}">Editar</button></td>
-    </tr>`;
-  }).join('') || '<tr><td colspan="5" class="muted">No hay tareas que mostrar con el filtro actual.</td></tr>';
+    const vencida = t.limite && !t.completada && t.limite < hoyISO() ? ' ⚠ vencida' : '';
+    return `<div class="tareaAc ${t.completada?'tareaCompleta':''}" data-tareaac="${t.id}">
+      <div class="acCab ${claseParpadeo}" style="${estiloFila}">
+        <input type="checkbox" class="checkGrande" data-check="${t.id}" ${t.completada?'checked':''} title="Marcar como completada">
+        <span class="tTit">${esc(t.titulo)}</span>
+        <span class="muted">${resp?esc(resp.nombre||resp.id):'—'}</span>
+        <span style="${estiloFecha}">${t.limite?fechaBonita(t.limite):''}${vencida}</span>
+        <span class="flecha">▸</span>
+      </div>
+      <div class="acCuerpo">
+        <p class="muted" style="margin-bottom:8px">Responsable: <b>${resp?esc(resp.nombre||resp.id):'sin asignar'}</b>${t.limite?` · Fecha límite: <b>${fechaBonita(t.limite)}</b>`:''}</p>
+        <div class="acciones"><button class="btn sec" data-editar="${t.id}">Editar</button></div>
+      </div>
+    </div>`;
+  }).join('') || '<p class="muted">No hay tareas que mostrar con el filtro actual.</p>';
+  unaSolaAbierta($('listaTareas'));
 
   document.querySelectorAll('[data-check]').forEach(c => c.addEventListener('change', async () => {
     await colTareas.doc(c.dataset.check).update({
@@ -1119,8 +1322,8 @@ function rangoPeriodo(){
     ini = new Date(base.getFullYear(), base.getMonth(), 1);
     fin = new Date(base.getFullYear(), base.getMonth()+1, 0);
   } else if (tipo === 'trimestre'){
-    // El curso escolar arranca en agosto; el año de inicio se deduce de la fecha de referencia
-    const anyoInicio = base.getMonth() >= 7 ? base.getFullYear() : base.getFullYear() - 1;
+    // El curso escolar arranca el 1 de septiembre; el año de inicio se deduce de la fecha de referencia
+    const anyoInicio = base.getMonth() >= 8 ? base.getFullYear() : base.getFullYear() - 1;
     const tramos = {
       1: [`${anyoInicio}-08-25`,   `${anyoInicio}-11-30`],
       2: [`${anyoInicio}-12-01`,   `${anyoInicio+1}-02-28`],
@@ -1129,9 +1332,9 @@ function rangoPeriodo(){
     };
     [ini, fin] = tramos[$('expTrim').value];
   } else { // curso
-    const anyoInicio = base.getMonth() >= 7 ? base.getFullYear() : base.getFullYear()-1;
-    ini = new Date(`${anyoInicio}-08-25T12:00:00`);
-    fin = new Date(`${anyoInicio+1}-07-31T12:00:00`);
+    const anyoInicio = base.getMonth() >= 8 ? base.getFullYear() : base.getFullYear()-1;
+    ini = new Date(`${anyoInicio}-09-01T12:00:00`);
+    fin = new Date(`${anyoInicio+1}-08-31T12:00:00`);
   }
   return [ini.toISOString().slice(0,10), fin.toISOString().slice(0,10)];
 }
@@ -1188,14 +1391,13 @@ function fechaBonita(iso){
 // El sw (sw-reuniones.js) está desplegado junto a este index.html, con scope './':
 // su ámbito queda limitado a esta carpeta y no interfiere con las demás apps del dominio.
 if ('serviceWorker' in navigator && location.protocol === 'https:'){
-  navigator.serviceWorker.register('sw-reuniones.js', {scope:'./'})
-    .then(reg => $('estadoSW').textContent = '✓ Service worker registrado (ámbito: ' + reg.scope + ').')
-    .catch(e => $('estadoSW').textContent = 'No se pudo registrar el sw: ' + e.message);
+  navigator.serviceWorker.register('sw-reuniones.js', {scope:'./'}).catch(()=>{});
 }
 
 /* ================= ARRANQUE ================= */
 renderZonasAdmin();
 iniciarSplash();
+iniciarCurso();
 $('expPeriodo').dispatchEvent(new Event('change'));
 
 /* ---- Pantalla de inicio: fade in/out, 5 s; un clic la salta solo en esa ocasión ---- */
