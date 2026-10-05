@@ -339,7 +339,10 @@ section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
     <p class="muted">Importa el archivo <b>DiasNoLectivos.json</b> exportado desde «Gestión de Asuntos Propios». Esto es necesario para el cálculo correcto de las fechas de reunión.</p>
     <div class="fila" style="margin-top:8px">
       <div><label>Archivo JSON</label><input type="file" id="fichDias" accept=".json,application/json"></div>
-      <div style="flex:0 0 auto"><button class="btn" id="btnCargarDias">Importar</button></div>
+      <div style="flex:0 0 auto;display:flex;gap:8px;align-items:flex-end">
+        <button class="btn" id="btnCargarDias">Importar</button>
+        <button class="btn sec" id="btnGestionDias">Gestionar días importados</button>
+      </div>
     </div>
     <div id="infoDias" class="muted" style="margin-top:8px"></div>
   </div>
@@ -514,6 +517,42 @@ section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
   <h3 id="titBusqueda">Resultados</h3>
   <div id="cuerpoBusqueda" style="max-height:60vh;overflow:auto;margin-top:10px"></div>
   <div style="text-align:right;margin-top:12px"><button class="btn" onclick="document.getElementById('dlgBusqueda').close()">Cerrar</button></div>
+</dialog>
+
+<!-- Diálogo selección de días no lectivos a importar -->
+<dialog id="dlgDias" style="max-width:720px;width:95vw">
+  <h3 id="titDias">Importar días no lectivos</h3>
+  <div class="fila" style="align-items:center;margin-bottom:6px">
+    <div style="flex:0 0 auto">
+      <label style="margin:0;cursor:pointer"><input type="checkbox" id="chkTodosDias" checked class="checkGrande" style="vertical-align:-4px"> Marcar todos</label>
+    </div>
+    <span id="resumenDias" class="muted"></span>
+  </div>
+  <div style="max-height:50vh;overflow:auto;border:1px solid var(--borde);border-radius:10px">
+    <table><tbody id="tbodyDias"></tbody></table>
+  </div>
+  <div style="text-align:right;margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
+    <button class="btn sec" onclick="document.getElementById('dlgDias').close()">Cancelar</button>
+    <button class="btn ok" id="btnConfirmarDias">Importar seleccionados</button>
+  </div>
+</dialog>
+
+<!-- Diálogo gestión de días no lectivos ya importados -->
+<dialog id="dlgGestionDias" style="max-width:720px;width:95vw">
+  <h3 id="titGestionDias">Días no lectivos importados</h3>
+  <div class="fila" style="align-items:center;margin-bottom:6px">
+    <div style="flex:0 0 auto">
+      <label style="margin:0;cursor:pointer"><input type="checkbox" id="chkTodosGestion" class="checkGrande" style="vertical-align:-4px"> Marcar todos para eliminar</label>
+    </div>
+    <span id="resumenGestion" class="muted"></span>
+  </div>
+  <div style="max-height:50vh;overflow:auto;border:1px solid var(--borde);border-radius:10px">
+    <table><tbody id="tbodyGestionDias"></tbody></table>
+  </div>
+  <div style="text-align:right;margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
+    <button class="btn sec" onclick="document.getElementById('dlgGestionDias').close()">Cancelar</button>
+    <button class="btn peligro" id="btnEliminarDias">Eliminar seleccionados</button>
+  </div>
 </dialog>
 
 <script>
@@ -786,6 +825,7 @@ function renderZonasAdmin(){
     $('nuPass').addEventListener('input', compruebaNuPass);
     $('nuPass2').addEventListener('input', compruebaNuPass);
     $('btnCargarDias').addEventListener('click', cargarDiasNoLectivos);
+    $('btnGestionDias').addEventListener('click', abrirGestionDias);
     $('btnImportarExcel').addEventListener('click', analizarExcel);
   } else {
     const hayAdmin = usuarios.some(u => u.admin);
@@ -1034,21 +1074,64 @@ function pintaInfoDias(){
   $('infoDias').textContent = n ? `Importados ${n} días no lectivos para el curso ${cursoEscolar||'(sin curso indicado)'}.` : 'No hay días no lectivos importados todavía.';
 }
 
+let diasImport = [];   // días leídos del JSON pendientes de confirmar: [{fecha, diaSemana, categorias, detalle, seleccionado}]
 function cargarDiasNoLectivos(){
   const f = $('fichDias').files[0];
   if(!f) return alert('Selecciona el archivo DiasNoLectivos.json');
   const lector = new FileReader();
-  lector.onload = async () => {
+  lector.onload = () => {
     try{
       const json = JSON.parse(lector.result);
-      const mapa = {};
-      (json.dias||[]).forEach(d => mapa[d.fecha] = {categorias:d.categorias||[], detalle:d.detalle||''});
-      await colCursos.doc(cursoActivo).set({diasNoLectivos: mapa}, {merge:true});
-      alert(`Importados ${Object.keys(mapa).length} días del curso ${cursoEscolar}.`);
+      diasImport = (json.dias||[]).map(d => ({
+        fecha: d.fecha, diaSemana: d.diaSemana, categorias: d.categorias||[], detalle: d.detalle||'', seleccionado: true
+      }));
+      if (!diasImport.length) return alert('El archivo no contiene ningún día.');
+      diasImport.sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+      $('titDias').textContent = `Importar días no lectivos${json.curso ? ' · curso ' + json.curso : ''}`;
+      $('chkTodosDias').checked = true;
+      pintaDiasImport();
+      $('dlgDias').showModal();
     }catch(e){ alert('Archivo no válido: '+e.message); }
   };
   lector.readAsText(f);
 }
+function pintaDiasImport(){
+  $('tbodyDias').innerHTML = diasImport.map((d,i) => `
+    <tr>
+      <td><input type="checkbox" class="checkGrande" data-dia="${i}" ${d.seleccionado?'checked':''}></td>
+      <td style="white-space:nowrap"><b>${fechaBonita(d.fecha)}</b></td>
+      <td style="white-space:nowrap">${(d.categorias||[]).map(c=>`<span class="etiqueta">${esc(c)}</span>`).join(' ')}</td>
+      <td class="muted">${esc(d.detalle||'')}</td>
+    </tr>`).join('');
+  actualizaResumenDias();
+  document.querySelectorAll('[data-dia]').forEach(chk => chk.addEventListener('change', () => {
+    diasImport[+chk.dataset.dia].seleccionado = chk.checked;
+    actualizaResumenDias();
+  }));
+}
+function actualizaResumenDias(){
+  const n = diasImport.filter(d => d.seleccionado).length;
+  $('resumenDias').textContent = `${n} de ${diasImport.length} días seleccionados`;
+}
+$('chkTodosDias').addEventListener('change', e => {
+  diasImport.forEach(d => d.seleccionado = e.target.checked);
+  document.querySelectorAll('[data-dia]').forEach(chk => chk.checked = e.target.checked);
+  actualizaResumenDias();
+});
+$('btnConfirmarDias').addEventListener('click', async () => {
+  const sel = diasImport.filter(d => d.seleccionado);
+  if (!sel.length) return alert('No hay días seleccionados para importar.');
+  const mapa = {};
+  sel.forEach(d => mapa[d.fecha] = {categorias: d.categorias, detalle: d.detalle});
+  $('btnConfirmarDias').disabled = true;
+  try{
+    await colCursos.doc(cursoActivo).set({diasNoLectivos: mapa}, {merge:true});
+    $('fichDias').value = '';
+    $('dlgDias').close();
+    alert(`Importados ${sel.length} días no lectivos del curso ${cursoEscolar}.`);
+  }catch(e){ alert('Error al importar: '+e.message); }
+  $('btnConfirmarDias').disabled = false;
+});
 
 function esDiaLectivo(fechaISO){
   const d = new Date(fechaISO+'T12:00:00');
@@ -1059,6 +1142,60 @@ function esDiaLectivo(fechaISO){
   const cats = (ndl.categorias||[]).join(' ');
   return !(/Festivo|Vacacional|No Lectivo|No Disponible|Libre/i.test(cats));
 }
+
+/* ---- Gestión de días ya importados: ver su carácter y eliminarlos ---- */
+let gestionDias = [];   // [{fecha, categorias, detalle, eliminar}]
+function abrirGestionDias(){
+  const claves = Object.keys(diasNoLectivos).sort();
+  if (!claves.length) return alert('No hay días no lectivos importados todavía en el curso ' + (cursoEscolar || 'activo') + '.');
+  gestionDias = claves.map(f => ({
+    fecha: f,
+    categorias: (diasNoLectivos[f]||{}).categorias || [],
+    detalle: (diasNoLectivos[f]||{}).detalle || '',
+    eliminar: false
+  }));
+  $('titGestionDias').textContent = `Días no lectivos importados · curso ${cursoEscolar || 'activo'}`;
+  $('chkTodosGestion').checked = false;
+  pintaGestionDias();
+  $('dlgGestionDias').showModal();
+}
+function pintaGestionDias(){
+  $('tbodyGestionDias').innerHTML = gestionDias.map((d,i) => `
+    <tr>
+      <td><input type="checkbox" class="checkGrande" data-gdia="${i}" ${d.eliminar?'checked':''}></td>
+      <td style="white-space:nowrap"><b>${fechaBonita(d.fecha)}</b></td>
+      <td style="white-space:nowrap">${d.categorias.map(c=>`<span class="etiqueta">${esc(c)}</span>`).join(' ') || '<span class="muted">—</span>'}</td>
+      <td class="muted">${esc(d.detalle||'')}</td>
+    </tr>`).join('');
+  actualizaResumenGestion();
+  document.querySelectorAll('[data-gdia]').forEach(chk => chk.addEventListener('change', () => {
+    gestionDias[+chk.dataset.gdia].eliminar = chk.checked;
+    actualizaResumenGestion();
+  }));
+}
+function actualizaResumenGestion(){
+  const n = gestionDias.filter(d => d.eliminar).length;
+  $('resumenGestion').textContent = n ? `${n} de ${gestionDias.length} día(s) marcados para eliminar` : `${gestionDias.length} día(s) importados. Marca los que quieras eliminar.`;
+}
+$('chkTodosGestion').addEventListener('change', e => {
+  gestionDias.forEach(d => d.eliminar = e.target.checked);
+  document.querySelectorAll('[data-gdia]').forEach(chk => chk.checked = e.target.checked);
+  actualizaResumenGestion();
+});
+$('btnEliminarDias').addEventListener('click', async () => {
+  const aBorrar = gestionDias.filter(d => d.eliminar);
+  if (!aBorrar.length) return alert('Marca primero los días que quieras eliminar.');
+  if (!confirm(`¿Eliminar ${aBorrar.length} día(s) no lectivo(s) del curso ${cursoEscolar || 'activo'}?`)) return;
+  const restante = {};
+  gestionDias.filter(d => !d.eliminar).forEach(d => restante[d.fecha] = {categorias: d.categorias, detalle: d.detalle});
+  $('btnEliminarDias').disabled = true;
+  try{
+    await colCursos.doc(cursoActivo).set({diasNoLectivos: restante}, {merge:true});
+    $('dlgGestionDias').close();
+    alert(`Eliminados ${aBorrar.length} día(s) no lectivo(s).`);
+  }catch(e){ alert('Error al eliminar: '+e.message); }
+  $('btnEliminarDias').disabled = false;
+});
 
 /* ================= REUNIONES (colaborativo) ================= */
 
@@ -1215,7 +1352,7 @@ function guardarYa(forzar){
     actualizadoPor: usuarioActual, actualizadoEn: Date.now()
   }, {merge:true}).then(() => {
     escribiendo = false;
-    $('estadoGuardado').textContent = 'Guardado ✓ ' + new Date().toLocaleTimeString('es');
+    $('estadoGuardado').textContent = 'Acta guardada satisfactoriamente ✓ ' + new Date().toLocaleTimeString('es');
     latido();
   }).catch(e => {
     // IMPORTANTE: reactivar la recepción de cambios remotos aunque el guardado falle,
