@@ -4,7 +4,7 @@
    de esta aplicación dentro de iesvilladiego.github.io, de modo
    que NO interfiere con las demás apps alojadas en el dominio.
    ============================================================ */
-const VERSION = 'v8';                 // Versión "viva" de la app: sube este número en cada despliegue (se muestra en el banner)
+const VERSION = 'v2.1';                 // Versión "viva" de la app: sube este número en cada despliegue (se muestra en el banner)
 const CACHE = 'reuniones-' + VERSION; // El nombre de la caché acompaña siempre a la versión
 const ARCHIVOS = [
   './',
