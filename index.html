@@ -30,6 +30,8 @@
   --sombra:0 1px 2px rgba(15,23,42,.06),0 4px 16px rgba(15,23,42,.07);
   --sombra-bot:0 1px 3px rgba(15,23,42,.18);
   --radio:14px;
+  /* Tonos de las tarjetas de tarea según proximidad a la entrega (tema claro) */
+  --tarea-tono-a:.25; --tarea-fecha-l:26%; --tarea-vencida:#fadbd8; --tarea-vencida-fecha:#b91c1c;
 }
 @media(prefers-color-scheme:dark){
   :root{
@@ -41,6 +43,9 @@
     --error-fondo:rgba(248,113,113,.12); --error-texto:#fca5a5;
     --sombra:0 1px 2px rgba(0,0,0,.4),0 4px 16px rgba(0,0,0,.35);
     --sombra-bot:0 1px 3px rgba(0,0,0,.5);
+    /* Tonos de tarea (tema oscuro): fondos profundos y textos claros
+       para que el título contraste en todos los tonos */
+    --tarea-tono-a:.32; --tarea-fecha-l:72%; --tarea-vencida:#4a2129; --tarea-vencida-fecha:#f87171;
   }
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -141,7 +146,7 @@ textarea.editor{width:100%;min-height:420px;font-size:.95rem;line-height:1.6;res
 .checkGrande{width:19px;height:19px;cursor:pointer;accent-color:var(--ok)}
 .acciones{display:flex;gap:6px;flex-wrap:wrap}
 /* Degradado y parpadeo de tareas por proximidad de la fecha límite */
-@keyframes parpadeo{0%,30%{background:#ff5b4d;color:#fff}40%,100%{background:transparent}}
+@keyframes parpadeo{0%,30%{background:#dc2626;color:#fff}40%,100%{background:transparent}}
 .parpadeo1{animation:parpadeo 1s infinite}
 .parpadeo2{animation:parpadeo .5s infinite}
 .parpadeo3{animation:parpadeo .333s infinite}
@@ -167,12 +172,17 @@ dialog h3{margin-top:0}
 .tareaAc{background:var(--tarjeta);border:1px solid var(--borde);border-radius:12px;margin-bottom:10px;box-shadow:var(--sombra);overflow:hidden;transition:border-color .2s}
 .tareaAc:hover{border-color:var(--primario)}
 .tareaAc .acCab{display:flex;gap:10px;align-items:center;padding:10px 14px;cursor:pointer;flex-wrap:wrap}
-.tareaAc .acCab .tTit{flex:1;min-width:140px;font-weight:600}
+.tareaAc .acCab .tTit{flex:1;min-width:140px;font-weight:700}
 .tareaAc .acCab .flecha{color:var(--texto-suave);transition:transform .25s}
 .tareaAc.abierta .flecha{transform:rotate(90deg)}
 .tareaAc .acCuerpo{display:none;padding:4px 14px 14px;border-top:1px solid var(--borde)}
 .tareaAc.abierta .acCuerpo{display:block;animation:acAbre .25s ease}
 .tareaAc.tareaCompleta .tTit{text-decoration:line-through;opacity:.55}
+/* Fondo de la cabecera por proximidad a la entrega: el JS solo aporta el matiz
+   (--matiz, 0º=rojo … 120º=verde); el fondo y el color de la fecha los compone el
+   CSS según el tema, de modo que el título contraste sobre cualquier tono. */
+.tareaAc .acCab.tono{background:hsla(var(--matiz),80%,55%,var(--tarea-tono-a))}
+.tareaAc .acCab.vencida{background:var(--tarea-vencida)}
 /* ================= CALENDARIO ================= */
 .calCab{display:flex;align-items:center;gap:8px;margin-bottom:12px}
 .calCab .btn{min-width:42px}
@@ -1745,17 +1755,21 @@ function renderTareas(){
 
   $('listaTareas').innerHTML = visibles.map(t => {
     const resp = usuarios.find(u=>u.id===t.responsable);
-    // Degradado verde→rojo según días que queden (verde pleno a 14 días o más, rojo el día de caducidad)
-    let estiloFila = '', estiloFecha = '', claseParpadeo = '';
+    // Degradado verde→rojo según días que queden (verde pleno a 14 días o más, rojo el día de caducidad).
+    // El tono se aplica con clases CSS (.tono/.vencida) y el matiz viaja como --matiz:
+    // así el fondo y el color de la fecha se adaptan al tema claro/oscuro y el título
+    // mantiene el contraste sobre cualquier tono.
+    let estiloFila = '', estiloFecha = '', claseTono = '', claseParpadeo = '';
     if (t.limite && !t.completada){
       const dias = Math.round((new Date(t.limite+'T00:00:00') - new Date(hoyISO()+'T00:00:00')) / 86400000);
       const matiz = Math.min(Math.max(dias,0)/14, 1) * 120;   // 0º=rojo … 120º=verde
       if (dias < 0){
-        estiloFila = 'background:#fadbd8';
-        estiloFecha = 'color:var(--acento);font-weight:700';
+        claseTono = 'vencida';
+        estiloFecha = 'color:var(--tarea-vencida-fecha);font-weight:700';
       } else {
-        estiloFila = `background:hsla(${matiz},80%,55%,.25)`;
-        estiloFecha = `color:hsl(${matiz},70%,28%);font-weight:600`;
+        claseTono = 'tono';
+        estiloFila = `--matiz:${matiz}`;
+        estiloFecha = 'color:hsl(var(--matiz),70%,var(--tarea-fecha-l));font-weight:600';
         // Parpadeo en los últimos días: 3 días→1/s, 2 y 1 días→2/s, caduca hoy→3/s
         if (dias === 0) claseParpadeo = 'parpadeo3';
         else if (dias <= 2) claseParpadeo = 'parpadeo2';
@@ -1764,7 +1778,7 @@ function renderTareas(){
     }
     const vencida = t.limite && !t.completada && t.limite < hoyISO() ? ' ⚠ vencida' : '';
     return `<div class="tareaAc ${t.completada?'tareaCompleta':''}" data-tareaac="${t.id}">
-      <div class="acCab ${claseParpadeo}" style="${estiloFila}">
+      <div class="acCab ${claseTono} ${claseParpadeo}" style="${estiloFila}">
         <input type="checkbox" class="checkGrande" data-check="${t.id}" ${t.completada?'checked':''} title="Marcar como completada">
         <span class="tTit">${esc(t.titulo)}</span>
         <span class="muted">${resp?esc(resp.nombre||resp.id):'—'}</span>
@@ -1931,8 +1945,9 @@ if ('serviceWorker' in navigator && location.protocol === 'https:'){
 function pintaVersionChip(version){
   const chip = $('chipVersion');
   if (!chip || !version) return;
-  const v = String(version).trim();
-  chip.textContent = /^v/i.test(v) ? v : 'v' + v;
+  // La numeración la define el sw (hoy 'reuniones-v7' → 'v7'): se muestra tal cual,
+  // sin asumir formato, para que cualquier cambio de numeración funcione sin editar el HTML.
+  chip.textContent = String(version).trim();
   chip.title = 'Versión de la app en ejecución, según el service worker activo';
   chip.hidden = false;
 }
