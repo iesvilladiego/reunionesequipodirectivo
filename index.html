@@ -61,6 +61,12 @@ header{
 header .logo{width:36px;height:36px;flex:none;filter:drop-shadow(0 1px 3px rgba(0,0,0,.3))}
 header h1{font-size:clamp(1rem,2.5vw,1.2rem);font-weight:700;flex:1;min-width:150px;letter-spacing:.2px}
 #sesionActual{font-size:.9rem;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:6px 14px;backdrop-filter:blur(6px)}
+/* Título + chip de versión "viva" (la que está atendiendo el service worker) */
+.cabTitulo{display:flex;align-items:center;gap:8px;flex:1;min-width:150px;flex-wrap:wrap}
+.cabTitulo h1{flex:0 1 auto;min-width:0}
+#chipVersion{display:inline-flex;align-items:center;flex:none;font-size:.72rem;font-weight:700;letter-spacing:.5px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.38);color:#fff;border-radius:999px;padding:3px 10px;backdrop-filter:blur(6px);white-space:nowrap;cursor:help}
+#chipVersion[hidden]{display:none}
+#chipVersion::before{content:'';flex:none;width:7px;height:7px;border-radius:50%;background:#4ade80;margin-right:6px;box-shadow:0 0 6px rgba(74,222,128,.85)}
 nav{
   display:flex;gap:4px;padding:6px 10px;overflow-x:auto;scrollbar-width:none;
   background:linear-gradient(135deg,var(--cab1),var(--cab2));
@@ -206,6 +212,8 @@ section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
   header{padding:8px 10px;gap:8px}
   header h1{font-size:.95rem}
   #sesionActual{max-width:100%;flex:1 1 100%;text-align:center}
+  .cabTitulo{gap:6px}
+  #chipVersion{font-size:.64rem;padding:2px 8px}
   nav{padding:4px 6px}
   nav button{padding:9px 10px;font-size:.75rem;flex:1 1 auto}
   textarea.editor{min-height:55vh;font-size:1rem}   /* tamaño de letra legible evita el zoom de iOS */
@@ -233,7 +241,10 @@ section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
 
 <header>
   <svg class="logo" viewBox="0 0 64 64"><rect x="8" y="6" width="48" height="52" rx="6" fill="#fff" opacity=".15"/><rect x="14" y="4" width="36" height="10" rx="3" fill="#c0392b"/><rect x="14" y="22" width="32" height="4" rx="2" fill="#fff"/><rect x="14" y="32" width="32" height="4" rx="2" fill="#fff" opacity=".6"/><rect x="14" y="42" width="20" height="4" rx="2" fill="#fff" opacity=".6"/><path d="M50 34 L60 44 L46 58 L38 58 L38 50 Z" fill="#f1c40f"/></svg>
-  <h1>Reuniones · Equipo Directivo</h1>
+  <div class="cabTitulo">
+    <h1>Reuniones · Equipo Directivo</h1>
+    <span id="chipVersion" hidden></span>
+  </div>
   <span id="sesionActual" style="font-size:.9rem"></span>
   <button class="btn sec" id="btnSalir" style="padding:6px 12px">Salir</button>
 </header>
@@ -1901,6 +1912,29 @@ if ('serviceWorker' in navigator && location.protocol === 'https:'){
     recargadaPorSW = true;
     location.reload();
   });
+  // Versión "viva" de la app: se la pedimos al sw que está atendiendo la página
+  // (única fuente de verdad) por un MessageChannel y la pintamos en el chip del banner.
+  // Si no hay sw (http local, error de registro…), el chip permanece oculto.
+  navigator.serviceWorker.ready.then(reg => {
+    const sw = reg.active || navigator.serviceWorker.controller;
+    if (!sw) return;
+    const canal = new MessageChannel();
+    canal.port1.onmessage = ev => pintaVersionChip(ev.data && ev.data.version);
+    sw.postMessage({type:'PEDIR_VERSION'}, [canal.port2]);
+  }).catch(()=>{});
+}
+
+/* ---- Chip de versión "viva" del banner ----
+   La versión nunca está duplicada en el HTML: siempre es la del sw activo.
+   Tras una actualización, el controllerchange recarga la página y el chip
+   vuelve a preguntar, de modo que refleja la versión recién instalada. */
+function pintaVersionChip(version){
+  const chip = $('chipVersion');
+  if (!chip || !version) return;
+  const v = String(version).trim();
+  chip.textContent = /^v/i.test(v) ? v : 'v' + v;
+  chip.title = 'Versión de la app en ejecución, según el service worker activo';
+  chip.hidden = false;
 }
 
 /* ================= DIAGNÓSTICO: errores visibles en pantalla ================= */
