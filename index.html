@@ -65,7 +65,7 @@ header{
 }
 header .logo{width:36px;height:36px;flex:none;filter:drop-shadow(0 1px 3px rgba(0,0,0,.3))}
 header h1{font-size:clamp(1rem,2.5vw,1.2rem);font-weight:700;flex:1;min-width:150px;letter-spacing:.2px}
-#sesionActual{font-size:.9rem;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:6px 14px;backdrop-filter:blur(6px)}
+#sesionActual{font-size:.78rem;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:4px 11px;backdrop-filter:blur(6px);white-space:nowrap}
 /* Título + chip de versión "viva" (la que está atendiendo el service worker) */
 .cabTitulo{display:flex;align-items:center;gap:8px;flex:1;min-width:150px;flex-wrap:wrap}
 .cabTitulo h1{flex:0 1 auto;min-width:0}
@@ -221,7 +221,7 @@ section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
   table{min-width:560px}
   header{padding:8px 10px;gap:8px}
   header h1{font-size:.95rem}
-  #sesionActual{max-width:100%;flex:1 1 100%;text-align:center}
+  #sesionActual{font-size:.72rem;flex:0 1 auto}
   .cabTitulo{gap:6px}
   #chipVersion{font-size:.64rem;padding:2px 8px}
   nav{padding:4px 6px}
@@ -255,7 +255,7 @@ section.hoja.atras{animation-name:pasarHojaAtras;transform-origin:right center}
     <h1>Reuniones · Equipo Directivo</h1>
     <span id="chipVersion" hidden></span>
   </div>
-  <span id="sesionActual" style="font-size:.9rem"></span>
+  <span id="sesionActual"></span>
   <button class="btn sec" id="btnSalir" style="padding:6px 12px">Salir</button>
 </header>
 
