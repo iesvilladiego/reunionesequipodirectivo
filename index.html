@@ -1920,6 +1920,21 @@ if ('serviceWorker' in navigator && location.protocol === 'https:'){
   // ¿La página ya venía atendida por un sw al cargar? Si no, es su primera activación.
   const habiaSWalCargar = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.register('sw-reuniones.js', {scope:'./'}).catch(()=>{});
+  // Versión "viva" de la app: se la pedimos al sw que está atendiendo la página
+  // (única fuente de verdad) por un MessageChannel y la pintamos en el chip del banner.
+  // Si no hay sw (http local, error de registro…), el chip permanece oculto.
+  // OJO: se pregunta también en cada controllerchange. Si el sw activo es uno
+  // VIEJO sin este protocolo de mensajes (p. ej. al desplegar esta versión sobre una
+  // instalación anterior), no contestará: el chip se pintará en cuanto el sw nuevo
+  // tome el control, sin necesidad de recargar la página.
+  const pideVersionAlSW = () => navigator.serviceWorker.ready.then(reg => {
+    const sw = navigator.serviceWorker.controller || reg.active;
+    if (!sw) return;
+    const canal = new MessageChannel();
+    canal.port1.onmessage = ev => pintaVersionChip(ev.data && ev.data.version);
+    sw.postMessage({type:'PEDIR_VERSION'}, [canal.port2]);
+  }).catch(()=>{});
+  pideVersionAlSW();
   // Cuando un sw NUEVO toma el control (tras desplegar una actualización) conviene
   // recargar la página para que el HTML coincida con el código vivo. Pero recargar
   // sin más resultaba muy molesto: volvía a saltar la imagen inicial y se perdía lo
@@ -1932,6 +1947,9 @@ if ('serviceWorker' in navigator && location.protocol === 'https:'){
   //     nueva se aplica en el siguiente arranque, sin molestar a nadie.
   let recargadaPorSW = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
+    // El chip repinta al momento con la versión del sw que acaba de tomar el
+    // control, tanto si es la primera activación como si es una actualización.
+    pideVersionAlSW();
     if (recargadaPorSW || !habiaSWalCargar) return;
     if (document.hidden){ recargadaPorSW = true; location.reload(); return; }
     const alPasaraSegundoPlano = () => {
@@ -1941,22 +1959,13 @@ if ('serviceWorker' in navigator && location.protocol === 'https:'){
     };
     document.addEventListener('visibilitychange', alPasaraSegundoPlano);
   });
-  // Versión "viva" de la app: se la pedimos al sw que está atendiendo la página
-  // (única fuente de verdad) por un MessageChannel y la pintamos en el chip del banner.
-  // Si no hay sw (http local, error de registro…), el chip permanece oculto.
-  navigator.serviceWorker.ready.then(reg => {
-    const sw = reg.active || navigator.serviceWorker.controller;
-    if (!sw) return;
-    const canal = new MessageChannel();
-    canal.port1.onmessage = ev => pintaVersionChip(ev.data && ev.data.version);
-    sw.postMessage({type:'PEDIR_VERSION'}, [canal.port2]);
-  }).catch(()=>{});
 }
 
 /* ---- Chip de versión "viva" del banner ----
    La versión nunca está duplicada en el HTML: siempre es la del sw activo.
-   Tras una actualización, el controllerchange recarga la página y el chip
-   vuelve a preguntar, de modo que refleja la versión recién instalada. */
+   Cuando un sw nuevo toma el control (primera activación o actualización),
+   el controllerchange vuelve a preguntar y el chip refleja al instante la
+   versión recién instalada, sin recargar la página. */
 function pintaVersionChip(version){
   const chip = $('chipVersion');
   if (!chip || !version) return;
