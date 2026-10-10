@@ -1917,14 +1917,29 @@ function fechaBonita(iso){
 // El sw (sw-reuniones.js) está desplegado junto a este index.html, con scope './':
 // su ámbito queda limitado a esta carpeta y no interfiere con las demás apps del dominio.
 if ('serviceWorker' in navigator && location.protocol === 'https:'){
+  // ¿La página ya venía atendida por un sw al cargar? Si no, es su primera activación.
+  const habiaSWalCargar = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.register('sw-reuniones.js', {scope:'./'}).catch(()=>{});
-  // Cuando un service worker NUEVO toma el control (tras actualizar la app), se recarga
-  // la página una sola vez para que el HTML servido coincida siempre con el código vivo
+  // Cuando un sw NUEVO toma el control (tras desplegar una actualización) conviene
+  // recargar la página para que el HTML coincida con el código vivo. Pero recargar
+  // sin más resultaba muy molesto: volvía a saltar la imagen inicial y se perdía lo
+  // que el usuario estuviera escribiendo en el login (o en un acta). Dos reglas:
+  //   · Primera activación (no había sw al cargar): NO se recarga. El HTML se acaba
+  //     de servir desde la red (ya es el vivo); que el sw "adopte" la página no cambia nada.
+  //   · Actualización: no se recarga mientras la app esté a la vista. Se espera a que
+  //     pase a segundo plano y entonces se recarga: el usuario no lo percibe y, al
+  //     volver, ya está la versión nueva. Si no llega a pasar a segundo plano, la versión
+  //     nueva se aplica en el siguiente arranque, sin molestar a nadie.
   let recargadaPorSW = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (recargadaPorSW) return;
-    recargadaPorSW = true;
-    location.reload();
+    if (recargadaPorSW || !habiaSWalCargar) return;
+    if (document.hidden){ recargadaPorSW = true; location.reload(); return; }
+    const alPasaraSegundoPlano = () => {
+      if (!document.hidden || recargadaPorSW) return;
+      recargadaPorSW = true;
+      location.reload();
+    };
+    document.addEventListener('visibilitychange', alPasaraSegundoPlano);
   });
   // Versión "viva" de la app: se la pedimos al sw que está atendiendo la página
   // (única fuente de verdad) por un MessageChannel y la pintamos en el chip del banner.
@@ -1945,7 +1960,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:'){
 function pintaVersionChip(version){
   const chip = $('chipVersion');
   if (!chip || !version) return;
-  // La numeración la define el sw (hoy 'reuniones-v7' → 'v7'): se muestra tal cual,
+  // La numeración la define el sw (hoy 'reuniones-v2.7' → 'v2.7'): se muestra tal cual,
   // sin asumir formato, para que cualquier cambio de numeración funcione sin editar el HTML.
   chip.textContent = String(version).trim();
   chip.title = 'Versión de la app en ejecución, según el service worker activo';
