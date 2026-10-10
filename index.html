@@ -1914,12 +1914,30 @@ function fechaBonita(iso){
 }
 
 /* ================= PWA: SERVICE WORKER (ámbito relativo) ================= */
-// El sw (sw-reuniones.js) está desplegado junto a este index.html, con scope './':
-// su ámbito queda limitado a esta carpeta y no interfiere con las demás apps del dominio.
+// El sw (sw.js) está desplegado junto a este index.html, con scope './': su ámbito
+// queda limitado a esta carpeta y no interfiere con las demás apps del dominio.
 if ('serviceWorker' in navigator && location.protocol === 'https:'){
   // ¿La página ya venía atendida por un sw al cargar? Si no, es su primera activación.
   const habiaSWalCargar = !!navigator.serviceWorker.controller;
-  navigator.serviceWorker.register('sw-reuniones.js', {scope:'./'}).catch(()=>{});
+  // El sw se llama sw.js (antes sw-reuniones.js). Un renombrado no es un simple
+  // cambio de nombre: el navegador identifica el registro por su URL. Pero como
+  // el registro es por ÁMBITO, al registrar sw.js con el mismo scope './' el
+  // navegador sustituye al sw antiguo por el nuevo igual que en cualquier otra
+  // actualización (el viejo queda redundante en cuanto el nuevo se activa, con
+  // el skipWaiting + clients.claim que ya lleva el propio sw).
+  navigator.serviceWorker.register('sw.js', {scope:'./'}).then(reg => {
+    // Limpieza del renombrado, por si algún navegador conservara un registro
+    // huérfano con el nombre anterior: se da de baja. No se toca el registro de
+    // esta app (mismo ámbito, ya apunta a sw.js) ni los service workers de las
+    // demás apps de este dominio (sus scripts no se llaman sw-reuniones.js).
+    return navigator.serviceWorker.getRegistrations().then(regs => {
+      regs.forEach(r => {
+        if (r.scope === reg.scope) return;   // el de esta app: nunca se toca
+        const mias = r.installing || r.waiting || r.active;   // el más reciente
+        if (mias && new URL(mias.scriptURL).pathname.endsWith('/sw-reuniones.js')) r.unregister();
+      });
+    });
+  }).catch(()=>{});
   // Versión "viva" de la app: se la pedimos al sw que está atendiendo la página
   // (única fuente de verdad) por un MessageChannel y la pintamos en el chip del banner.
   // Si no hay sw (http local, error de registro…), el chip permanece oculto.
