@@ -4,7 +4,7 @@
    de esta aplicación dentro de iesvilladiego.github.io, de modo
    que NO interfiere con las demás apps alojadas en el dominio.
    ============================================================ */
-const CACHE = 'reuniones-v2.7';
+const CACHE = 'reuniones-v2.9';
 // Versión "viva" de la app que se muestra en el banner: se deriva del nombre de
 // la caché, así que basta con cambiar la numeración de CACHE (v8, 1.2, 2026.10…)
 // y el chip del banner la mostrará tal cual, sin editar nada más.
